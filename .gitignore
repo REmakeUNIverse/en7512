@@ -7,3 +7,5 @@ tplink-vr300
 buildroot
 linux-*.gz
 GPL_Archer*.gz
+vr300-linux
+vr300-linux-orig
