@@ -1,0 +1,58 @@
+Only in tplink-vr300/mtk/linux-2.6.36/include: config
+Only in tplink-vr300/mtk/linux-2.6.36/include: ecnt_hook
+Only in tplink-vr300/mtk/linux-2.6.36/include: generated
+Files linux-2.6.36/include/linux/atmdev.h and tplink-vr300/mtk/linux-2.6.36/include/linux/atmdev.h differ
+Files linux-2.6.36/include/linux/atm.h and tplink-vr300/mtk/linux-2.6.36/include/linux/atm.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux/decompress: bunzip2_mm.h
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux/decompress: inflate_mm.h
+Files linux-2.6.36/include/linux/decompress/mm.h and tplink-vr300/mtk/linux-2.6.36/include/linux/decompress/mm.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux/decompress: unlzma_mm.h
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux/decompress: unlzo_mm.h
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: foe_hook.h
+Files linux-2.6.36/include/linux/gfp.h and tplink-vr300/mtk/linux-2.6.36/include/linux/gfp.h differ
+Files linux-2.6.36/include/linux/if_bridge.h and tplink-vr300/mtk/linux-2.6.36/include/linux/if_bridge.h differ
+Files linux-2.6.36/include/linux/if_ether.h and tplink-vr300/mtk/linux-2.6.36/include/linux/if_ether.h differ
+Files linux-2.6.36/include/linux/if.h and tplink-vr300/mtk/linux-2.6.36/include/linux/if.h differ
+Files linux-2.6.36/include/linux/if_packet.h and tplink-vr300/mtk/linux-2.6.36/include/linux/if_packet.h differ
+Files linux-2.6.36/include/linux/if_pppox.h and tplink-vr300/mtk/linux-2.6.36/include/linux/if_pppox.h differ
+Files linux-2.6.36/include/linux/if_vlan.h and tplink-vr300/mtk/linux-2.6.36/include/linux/if_vlan.h differ
+Files linux-2.6.36/include/linux/igmp.h and tplink-vr300/mtk/linux-2.6.36/include/linux/igmp.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: imq.h
+Files linux-2.6.36/include/linux/in6.h and tplink-vr300/mtk/linux-2.6.36/include/linux/in6.h differ
+Files linux-2.6.36/include/linux/in.h and tplink-vr300/mtk/linux-2.6.36/include/linux/in.h differ
+Files linux-2.6.36/include/linux/interrupt.h and tplink-vr300/mtk/linux-2.6.36/include/linux/interrupt.h differ
+Files linux-2.6.36/include/linux/ipv6.h and tplink-vr300/mtk/linux-2.6.36/include/linux/ipv6.h differ
+Files linux-2.6.36/include/linux/jffs2.h and tplink-vr300/mtk/linux-2.6.36/include/linux/jffs2.h differ
+Files linux-2.6.36/include/linux/kernel.h and tplink-vr300/mtk/linux-2.6.36/include/linux/kernel.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: libcompileoption.h
+Files linux-2.6.36/include/linux/list_nulls.h and tplink-vr300/mtk/linux-2.6.36/include/linux/list_nulls.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: lzma
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: lzma.h
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux/mtd: fttdp_inic.h
+Files linux-2.6.36/include/linux/mtd/mtd.h and tplink-vr300/mtk/linux-2.6.36/include/linux/mtd/mtd.h differ
+Files linux-2.6.36/include/linux/mtd/nand.h and tplink-vr300/mtk/linux-2.6.36/include/linux/mtd/nand.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux/mtd: rt_flash.h
+Files linux-2.6.36/include/linux/netdevice.h and tplink-vr300/mtk/linux-2.6.36/include/linux/netdevice.h differ
+Files linux-2.6.36/include/linux/netlink.h and tplink-vr300/mtk/linux-2.6.36/include/linux/netlink.h differ
+Files linux-2.6.36/include/linux/oom.h and tplink-vr300/mtk/linux-2.6.36/include/linux/oom.h differ
+Files linux-2.6.36/include/linux/pci_ids.h and tplink-vr300/mtk/linux-2.6.36/include/linux/pci_ids.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: pcre
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: pktflow.h
+Files linux-2.6.36/include/linux/ppp_channel.h and tplink-vr300/mtk/linux-2.6.36/include/linux/ppp_channel.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: qos_type.h
+Files linux-2.6.36/include/linux/sched.h and tplink-vr300/mtk/linux-2.6.36/include/linux/sched.h differ
+Files linux-2.6.36/include/linux/semaphore.h and tplink-vr300/mtk/linux-2.6.36/include/linux/semaphore.h differ
+Files linux-2.6.36/include/linux/skbuff.h and tplink-vr300/mtk/linux-2.6.36/include/linux/skbuff.h differ
+Files linux-2.6.36/include/linux/sockios.h and tplink-vr300/mtk/linux-2.6.36/include/linux/sockios.h differ
+Files linux-2.6.36/include/linux/spinlock.h and tplink-vr300/mtk/linux-2.6.36/include/linux/spinlock.h differ
+Files linux-2.6.36/include/linux/string.h and tplink-vr300/mtk/linux-2.6.36/include/linux/string.h differ
+Files linux-2.6.36/include/linux/swab.h and tplink-vr300/mtk/linux-2.6.36/include/linux/swab.h differ
+Files linux-2.6.36/include/linux/sysctl.h and tplink-vr300/mtk/linux-2.6.36/include/linux/sysctl.h differ
+Files linux-2.6.36/include/linux/types.h and tplink-vr300/mtk/linux-2.6.36/include/linux/types.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/linux: version.h
+Files linux-2.6.36/include/net/addrconf.h and tplink-vr300/mtk/linux-2.6.36/include/net/addrconf.h differ
+Files linux-2.6.36/include/net/ip.h and tplink-vr300/mtk/linux-2.6.36/include/net/ip.h differ
+Only in tplink-vr300/mtk/linux-2.6.36/include/net: mtk_esp.h
+Files linux-2.6.36/include/net/neighbour.h and tplink-vr300/mtk/linux-2.6.36/include/net/neighbour.h differ
+Files linux-2.6.36/include/net/sock.h and tplink-vr300/mtk/linux-2.6.36/include/net/sock.h differ
+Files linux-2.6.36/include/net/udp.h and tplink-vr300/mtk/linux-2.6.36/include/net/udp.h differ

@@ -1,0 +1,24 @@
+#!/bin/bash
+
+args=(-r
+      -I '$Id:' -I '$Header' -I '$Revision' \
+      -I printk -I VERSION \
+      # Ignore files with only code comment changes.
+      -I '\*'
+      # Ignore built files.
+      -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d'
+      -x '*.o' -x '*.cmd' -x '*.ko'
+      # Ignore USB drivers for the moment.
+      -x '*usb*'
+      # There is ralink already in linux-3.9.
+      -x '*ralink*'
+      -x '.gitignore'
+      linux-2.6.36/"$1" tplink-vr300/mtk/linux-2.6.36/"$1")
+
+# bash diff drivers -u
+# To include new files: bash diff drivers -uN
+# Files only: bash diff drivers -q
+diff ${args[@]} ${@:2}
+
+# cd linux-3.9
+# patch -p1 -o tmp/apply < ../mips.diff-full

@@ -1,0 +1,4 @@
+tftp 192.168.1.1
+mode binary
+timeout 10
+get /dev/mtdblock4

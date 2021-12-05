@@ -1,0 +1,8 @@
+/dev/mtdblock3 on / type squashfs (ro,relatime)
+ramfs on /var type ramfs (rw,relatime)
+none on /proc type proc (rw,relatime)
+sysfs on /sys type sysfs (rw,relatime)
+devtmpfs on /dev type devtmpfs (rw,relatime,size=55300k,nr_inodes=13825,mode=755)
+devpts on /dev/pts type devpts (rw,relatime,mode=600)
+tmpfs on /etc type tmpfs (rw,relatime)
+/dev/mtdblock14 on /var/SaaS type jffs2 (rw,relatime)

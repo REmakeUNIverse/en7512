@@ -1,0 +1,37 @@
+pl2303 8471 0 - Live 0xc25a0000
+option 27673 0 - Live 0xc2582000
+usb_wwan 5064 1 option, Live 0xc2555000
+usbserial 23162 3 pl2303,option,usb_wwan, Live 0xc2542000
+fuse 83593 0 - Live 0xc2513000
+usb_storage 40591 0 - Live 0xc24d1000
+sd_mod 30355 0 - Live 0xc24a7000
+scsi_mod 101159 2 usb_storage,sd_mod, Live 0xc2453000
+mt7603eap 1450350 1 - Live 0xc1f76000 (O)
+ovdsp 298879 2 - Live 0xc1ae5000 (O)
+foip 389902 1 ovdsp, Live 0xc1a06000 (PO)
+acodec_x 297903 1 ovdsp, Live 0xc1905000 (PO)
+ortp 129626 1 ovdsp, Live 0xc186e000 (O)
+ksocket 4278 2 ovdsp,ortp, Live 0xc182f000 (PO)
+fxs3 235051 4 ovdsp,ortp, Live 0xc17e3000 (PO)
+slic3 956900 1 fxs3, Live 0xc1681000 (PO)
+spi 29971 1 slic3, Live 0xc14f8000 (PO)
+lec 82946 1 fxs3, Live 0xc14cd000 (PO)
+pcm1 22982 0 - Live 0xc14a8000 (PO)
+DSPCore 39222 6 ovdsp,ortp,fxs3,slic3,lec,pcm1, Live 0xc1489000 (PO)
+sys_mod 5953 7 ovdsp,ortp,fxs3,slic3,spi,pcm1,DSPCore, Live 0xc1476000 (O)
+hw_nat 261393 0 - Live 0xc13b9000 (PO)
+qdma_wan 173009 0 - Live 0xc132b000 (PO)
+wlan_ratelimit 9027 0 - Live 0xc12c6000 (PO)
+tc3162_dmt 2753172 0 - Live 0xc0fcd000 (PO)
+eth_ephy 123529 0 - Live 0xc0c27000 (PO)
+eth 150594 4 ortp,hw_nat,tc3162_dmt,eth_ephy, Live 0xc0bc0000 (PO)
+qdma_lan 132323 0 - Live 0xc0b57000 (PO)
+fe_core 37275 2 hw_nat,tc3162_dmt, Live 0xc0b10000 (PO)
+sif 24496 0 [permanent], Live 0xc0af7000 (PO)
+tccicmd 91575 4 tc3162_dmt,eth_ephy,eth,sif, Live 0xc0acd000 (PO)
+host_km 7994 1 - Live 0xc0a9b000 (PO)
+seh_km 5981 2 mt7603eap,eth_ephy, Live 0xc0a8b000 (PO)
+tcledctrl 45109 7 mt7603eap,fxs3,slic3,hw_nat,eth,tccicmd,seh_km, Live 0xc0a72000 (PO)
+tcvlantag 16743 0 - Live 0xc0a48000 (O)
+tcsmux 24506 0 - Live 0xc0a35000 (O)
+module_sel 1574 1 tcvlantag, Live 0xc0a20000 (PO)

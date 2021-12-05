@@ -1,0 +1,49 @@
+Character devices:
+  1 mem
+  2 pty
+  3 ttyp
+  4 ttyS
+  5 /dev/tty
+  5 /dev/console
+  5 /dev/ptmx
+ 10 misc
+ 13 input
+ 90 mtd
+108 ppp
+111 qostype
+119 qdma_lan
+120 qdma_wan
+128 ptm
+136 pts
+166 ttyACM
+180 usb
+188 ttyUSB
+189 usb_device
+220 hwnat0
+225 /dev/pcie
+226 /dev/fe
+231 slic
+232 vdsp
+233 spi
+254 hidraw
+
+Block devices:
+  1 ramdisk
+259 blkext
+  8 sd
+ 31 mtdblock
+ 65 sd
+ 66 sd
+ 67 sd
+ 68 sd
+ 69 sd
+ 70 sd
+ 71 sd
+128 sd
+129 sd
+130 sd
+131 sd
+132 sd
+133 sd
+134 sd
+135 sd

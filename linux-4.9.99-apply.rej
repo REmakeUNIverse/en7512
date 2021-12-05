@@ -1,0 +1,597 @@
+--- arch/mips/include/asm/irqflags.h	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/include/asm/irqflags.h	2019-03-07 03:40:17.000000000 +0200
+@@ -195,11 +195,15 @@ __asm__(
+ 	"	.set	pop						\n"
+ 	"	.endm							\n");
+ 
+-
++#ifdef TCSUPPORT_XPON_HAL_API_EXT
++extern void resetWatch(void);
++#endif
+ static inline void raw_local_irq_restore(unsigned long flags)
+ {
+ 	unsigned long __tmp1;
+-
++	#ifdef TCSUPPORT_XPON_HAL_API_EXT
++	resetWatch();
++	#endif
+ #ifdef CONFIG_MIPS_MT_SMTC
+ 	/*
+ 	 * SMTC kernel needs to do a software replay of queued
+--- arch/mips/include/asm/mipsregs.h	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/include/asm/mipsregs.h	2019-03-07 03:40:17.000000000 +0200
+@@ -1062,12 +1087,18 @@ do {									\
+ #define read_c0_taglo()		__read_32bit_c0_register($28, 0)
+ #define write_c0_taglo(val)	__write_32bit_c0_register($28, 0, val)
+ 
++#define read_c0_idatalo()		__read_32bit_c0_register($28, 1)
++#define write_c0_idatalo(val)	__write_32bit_c0_register($28, 1, val)
++
+ #define read_c0_dtaglo()	__read_32bit_c0_register($28, 2)
+ #define write_c0_dtaglo(val)	__write_32bit_c0_register($28, 2, val)
+ 
+ #define read_c0_taghi()		__read_32bit_c0_register($29, 0)
+ #define write_c0_taghi(val)	__write_32bit_c0_register($29, 0, val)
+ 
++#define read_c0_idatahi()		__read_32bit_c0_register($29, 1)
++#define write_c0_idatahi(val)	__write_32bit_c0_register($29, 1, val)
++
+ #define read_c0_errorepc()	__read_ulong_c0_register($30, 0)
+ #define write_c0_errorepc(val)	__write_ulong_c0_register($30, 0, val)
+ 
+--- arch/mips/include/asm/pgtable.h	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/include/asm/pgtable.h	2019-03-07 03:40:17.000000000 +0200
+@@ -162,7 +162,7 @@ static inline void set_pte(pte_t *ptep,
+ 
+ static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
+ {
+-#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX)
++#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX) && !defined(CONFIG_CPU_TC3162)
+ 	/* Preserve global status for the pair */
+ 	if (pte_val(*ptep_buddy(ptep)) & _PAGE_GLOBAL)
+ 		set_pte_at(mm, addr, ptep, __pte(_PAGE_GLOBAL));
+--- arch/mips/include/asm/stackframe.h	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/include/asm/stackframe.h	2019-03-07 03:40:17.000000000 +0200
+@@ -24,7 +24,7 @@
+  */
+ #ifdef CONFIG_MIPS_MT_SMTC
+ #define STATMASK 0x1e
+-#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ #define STATMASK 0x3f
+ #else
+ #define STATMASK 0x1f
+@@ -187,8 +187,6 @@
+ 		 * need it to operate correctly
+ 		 */
+ 		LONG_S	$0, PT_R0(sp)
+-		mfc0	v1, CP0_STATUS
+-		LONG_S	$2, PT_R2(sp)
+ #ifdef CONFIG_MIPS_MT_SMTC
+ 		/*
+ 		 * Ideally, these instructions would be shuffled in
+@@ -199,6 +197,8 @@
+ 		.set	mips0
+ 		LONG_S	v1, PT_TCSTATUS(sp)
+ #endif /* CONFIG_MIPS_MT_SMTC */
++		mfc0	v1, CP0_STATUS
++		LONG_S	$2, PT_R2(sp)
+ 		LONG_S	$4, PT_R4(sp)
+ 		LONG_S	$5, PT_R5(sp)
+ 		LONG_S	v1, PT_STATUS(sp)
+@@ -409,6 +410,8 @@
+ 		mfc0	v0, CP0_CAUSE
+ 		ori	v0, v0, C_SW1
+ 		mtc0	v0, CP0_CAUSE
++//#endif
++
+ 0:
+ 		/*
+ 		 * This test should really never branch but
+--- arch/mips/include/asm/thread_info.h	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/include/asm/thread_info.h	2019-03-07 03:40:17.000000000 +0200
+@@ -92,8 +96,12 @@ register struct thread_info *__current_t
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
+ #else
++#if defined(CONFIG_CPU_TC3162) || defined(CONFIG_MIPS_TC3262)
++#define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
++#else
+ #define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
+ #endif
++#endif
+ 
+ #define free_thread_info(info) kfree(info)
+ 
+--- arch/mips/Kbuild.platforms	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/Kbuild.platforms	2019-03-07 03:40:18.000000000 +0200
+@@ -18,6 +18,7 @@ platforms += pmc-sierra
+ platforms += pnx833x
+ platforms += pnx8550
+ platforms += powertv
++platforms += ralink
+ platforms += rb532
+ platforms += sgi-ip22
+ platforms += sgi-ip27
+--- arch/mips/Kconfig	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/Kconfig	2019-03-07 03:40:18.000000000 +0200
+@@ -252,6 +252,65 @@ config MIPS_MALTA
+ 	  This enables support for the MIPS Technologies Malta evaluation
+ 	  board.
+ 
++config MIPS_TC3262
++	bool "TrendChip's TC3262 Board"
++	select CPU_MIPSR2_IRQ_VI
++	select CPU_MIPSR2_IRQ_EI
++	select NO_EXCEPT_FILL
++	select BOOT_RAW
++	select CEVT_R4K
++	select CSRC_R4K
++	select DMA_NONCOHERENT
++	select IRQ_CPU
++	select HW_HAS_PCI
++	select SWAP_IO_SPACE
++	select SYS_HAS_CPU_MIPS32_R1
++	select SYS_HAS_CPU_MIPS32_R2
++	select SYS_HAS_CPU_MIPS64_R1
++	select SYS_HAS_EARLY_PRINTK
++	select SYS_SUPPORTS_32BIT_KERNEL
++	select SYS_SUPPORTS_BIG_ENDIAN
++	select SYS_SUPPORTS_LITTLE_ENDIAN
++	select SYS_SUPPORTS_MULTITHREADING
++	select TC3162_ADSL
++	select TC3162_IMEM
++	select TC3162_DMEM
++	help
++	  This enables support for TrendChip's TC3262 based board.  
++	  board.
++
++config MIPS_TC3182
++	bool "TrendChip's TC3182 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for TrendChip's TC3182 based board.  
++	  board.
++
++config MIPS_RT63165
++	bool "Ralink's RT63165 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for Ralink's RT63165 based board.  
++
++config MIPS_RT65168
++	bool "Ralink's RT65168 Board"
++	depends on MIPS_TC3262
++	select RALINK_VDSL
++	help
++	  This enables support for Ralink's RT65168 based board.  
++
++config MIPS_RT63365
++	bool "Ralink's RT63365 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for Ralink's RT63365 based board.  
++config MIPS_MT7510
++	bool "MediaTek's MT7510 Board"
++	depends on MIPS_TC3262
++	select RALINK_VDSL
++	help
++	  This enables support for MediaTek's MT7510 based board.  
++	  
+ config MIPS_SIM
+ 	bool 'MIPS simulator (MIPSsim)'
+ 	select CEVT_R4K
+@@ -2329,3 +2414,5 @@ source "security/Kconfig"
+ source "crypto/Kconfig"
+ 
+ source "lib/Kconfig"
++
++source "pwModel/Kconfig"
+--- arch/mips/kernel/cevt-r4k.c	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/cevt-r4k.c	2019-03-07 03:40:15.000000000 +0200
+@@ -48,12 +49,12 @@ DEFINE_PER_CPU(struct clock_event_device
+ int cp0_timer_irq_installed;
+ 
+ #ifndef CONFIG_MIPS_MT_SMTC
+-
+ irqreturn_t c0_compare_interrupt(int irq, void *dev_id)
+ {
+ 	const int r2 = cpu_has_mips_r2;
+ 	struct clock_event_device *cd;
+ 	int cpu = smp_processor_id();
++	unsigned int tmp;
+ 
+ 	/*
+ 	 * Suckage alert:
+--- arch/mips/kernel/cpu-probe.c	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/cpu-probe.c	2019-03-07 03:40:15.000000000 +0200
+@@ -25,6 +25,9 @@
+ #include <asm/system.h>
+ #include <asm/watch.h>
+ #include <asm/spram.h>
++#ifdef TCSUPPORT_CPU_EN7512
++#include <asm/tc3162/tc3162.h>
++#endif
+ /*
+  * Not all of the MIPS CPUs have the "wait" instruction available. Moreover,
+  * the implementation of the "wait" feature differs between CPU families. This
+@@ -212,6 +226,11 @@ void __init check_wait(void)
+ 		cpu_wait = r4k_wait;
+ 		if (read_c0_config7() & MIPS_CONF7_WII)
+ 			cpu_wait = r4k_wait_irqoff;
++	#ifdef TCSUPPORT_CPU_EN7512
++		if (isEN7512){
++			cpu_wait = cpu_wait_en7512;
++		}
++	#endif
+ 		break;
+ 
+ 	case CPU_74K:
+--- arch/mips/kernel/genex.S	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/genex.S	2019-03-07 03:40:15.000000000 +0200
+@@ -278,6 +278,7 @@ NESTED(except_vec_vi_handler, 0, sp)
+ 	 * service routine will have cleared the state, and any active
+ 	 * level represents a new or otherwised unserviced event...
+ 	 */
++#ifndef CONFIG_MIPS_TC3262
+ 	mfc0	t1, CP0_STATUS
+ 	and	t0, a0, t1
+ #ifdef CONFIG_MIPS_MT_SMTC_IM_BACKSTOP
+@@ -288,6 +289,7 @@ NESTED(except_vec_vi_handler, 0, sp)
+ 	xor	t1, t1, t0
+ 	mtc0	t1, CP0_STATUS
+ 	_ehb
++#endif
+ #endif /* CONFIG_MIPS_MT_SMTC */
+ 	CLI
+ #ifdef CONFIG_TRACE_IRQFLAGS
+--- arch/mips/kernel/irq.c	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/irq.c	2019-03-07 03:40:15.000000000 +0200
+@@ -156,13 +156,14 @@ void __init init_IRQ(void)
+  * SMP cross-CPU interrupts have their own specific
+  * handlers).
+  */
+-void __irq_entry do_IRQ(unsigned int irq)
++__IMEM void __irq_entry do_IRQ(int irq)//xflu 20120522
+ {
+ 	irq_enter();
+ 	__DO_IRQ_SMTC_HOOK(irq);
+ 	generic_handle_irq(irq);
+ 	irq_exit();
+ }
++EXPORT_SYMBOL(do_IRQ);
+ 
+ #ifdef CONFIG_MIPS_MT_SMTC_IRQAFF
+ /*
+@@ -170,7 +171,7 @@ void __irq_entry do_IRQ(unsigned int irq
+  * IRQ affinity, we have this variant that skips the affinity check.
+  */
+ 
+-void __irq_entry do_IRQ_no_affinity(unsigned int irq)
++__IMEM void __irq_entry do_IRQ_no_affinity(unsigned int irq)
+ {
+ 	irq_enter();
+ 	__NO_AFFINITY_IRQ_SMTC_HOOK(irq);
+--- arch/mips/kernel/Makefile	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/Makefile	2019-03-07 03:40:15.000000000 +0200
+@@ -36,6 +36,7 @@ obj-$(CONFIG_CPU_LOONGSON2)	+= r4k_fpu.o
+ obj-$(CONFIG_CPU_MIPS32)	+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_MIPS64)	+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R3000)		+= r2300_fpu.o r2300_switch.o
++obj-$(CONFIG_CPU_TC3162)	+= r2300_fpu.o r2300_switch.o
+ obj-$(CONFIG_CPU_R4300)		+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R4X00)		+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R5000)		+= r4k_fpu.o r4k_switch.o
+--- arch/mips/kernel/smp-mt.c	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/smp-mt.c	2019-03-07 03:40:15.000000000 +0200
+@@ -151,6 +151,10 @@ static void vsmp_send_ipi_mask(const str
+ 
+ static void __cpuinit vsmp_init_secondary(void)
+ {
++#ifdef CONFIG_MIPS_TC3262
++	write_c0_status((read_c0_status() & ~ST0_IM ) |
++	                (STATUSF_IP0 | STATUSF_IP1)); 
++#else
+ 	extern int gic_present;
+ 
+ 	/* This is Malta specific: IPI,performance and timer inetrrupts */
+--- arch/mips/kernel/spram.c	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/spram.c	2019-03-07 03:40:15.000000000 +0200
+@@ -12,12 +12,84 @@
+ #include <linux/kernel.h>
+ #include <linux/ptrace.h>
+ #include <linux/stddef.h>
++#include <linux/module.h>
+ 
++#include <asm/cpu.h>
+ #include <asm/fpu.h>
+ #include <asm/mipsregs.h>
+ #include <asm/system.h>
+ #include <asm/r4kcache.h>
+ #include <asm/hazards.h>
++#ifdef CONFIG_MIPS_TC3262
++#include <asm/tc3162/tc3162.h>
++
++extern int __imem, __dmem;
++#endif
++static char *sram_allocp = NULL;
++static int sram_size = 0;
++static int sram_free = 0;
++
++static char *dspram_p = NULL;
++static int dspram_used_size = 0;
++static int dspram_max_size = 0x1000;	//4K
++int is_sram_addr(void *p)
++{
++	if ((CKSEG1ADDR(p) & 0xffffc000) == (CKSEG1ADDR(DSPRAM_BASE) & 0xffffc000))
++		return 1;
++	else 
++		return 0;
++}
++EXPORT_SYMBOL(is_sram_addr);
++
++void *alloc_sram(int n)
++{
++	if (sram_allocp == NULL)
++		return NULL;
++
++	if (sram_free >= n) {
++		sram_free -= n;
++		sram_allocp += n;
++		printk("alloc_sram p=%p free=%04x\n", sram_allocp, sram_free);
++		return sram_allocp - n;
++	} else 
++		return NULL;
++}
++EXPORT_SYMBOL(alloc_sram);
++
++void free_sram(void *p, int n)
++{
++	if (sram_allocp == (p+n)) {
++		sram_free += n;
++		sram_allocp -= n;
++	}
++	printk("free_sram p=%p free=%04x\n", sram_allocp, sram_free);
++}
++EXPORT_SYMBOL(free_sram);
++
++void write_to_dspram(long  data)
++{
++	if(dspram_p == NULL || dspram_max_size == 0)
++		return;
++
++	
++	*(long *)dspram_p = data;
++	dspram_p += sizeof(long);
++
++	dspram_used_size += sizeof(long);
++
++	if(dspram_used_size >= dspram_max_size){
++		dspram_p = (char *)(DSPRAM_BASE);
++		dspram_used_size = 0;
++	}
++}
++
++unsigned int dspram_base_addr()
++{
++	return DSPRAM_BASE;
++}
++
++
++#define MIPS34K_Index_Store_Data_I	0x0c
+ 
+ /*
+  * These definitions are correct for the 24K/34K/74K SPRAM sample
+@@ -38,7 +110,7 @@
+ /*
+  * Different semantics to the set_c0_* function built by __BUILD_SET_C0
+  */
+-static __cpuinit unsigned int bis_c0_errctl(unsigned int set)
++static unsigned int bis_c0_errctl(unsigned int set)
+ {
+ 	unsigned int res;
+ 	res = read_c0_errctl();
+@@ -46,7 +118,36 @@ static __cpuinit unsigned int bis_c0_err
+ 	return res;
+ }
+ 
+-static __cpuinit void ispram_store_tag(unsigned int offset, unsigned int data)
++static void ispram_store_data(unsigned int offset, unsigned int datalo, unsigned int datahi)
++{
++	unsigned int errctl;
++
++	/* enable SPRAM tag access */
++	errctl = bis_c0_errctl(ERRCTL_SPRAM);
++	ehb();
++
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	write_c0_idatalo(datahi);
++	ehb();
++
++	write_c0_idatahi(datalo);
++	ehb();
++#else
++	write_c0_idatalo(datalo);
++	ehb();
++
++	write_c0_idatahi(datahi);
++	ehb();
++#endif
++
++	cache_op(MIPS34K_Index_Store_Data_I, CKSEG0|offset);
++	ehb();
++
++	write_c0_errctl(errctl);
++	ehb();
++}
++
++static void ispram_store_tag(unsigned int offset, unsigned int data)
+ {
+ 	unsigned int errctl;
+ 
+@@ -65,7 +166,7 @@ static __cpuinit void ispram_store_tag(u
+ }
+ 
+ 
+-static __cpuinit unsigned int ispram_load_tag(unsigned int offset)
++static unsigned int ispram_load_tag(unsigned int offset)
+ {
+ 	unsigned int data;
+ 	unsigned int errctl;
+@@ -210,6 +324,36 @@ static __cpuinit void probe_spram(char *
+ 		offset += 2 * SPRAM_TAG_STRIDE;
+ 	}
+ }
++
++void ispram_fill(void)
++{
++	unsigned int pa, size, tag0, tag1;
++	unsigned int offset;
++	unsigned int datalo, datahi;
++
++	tag0 = ispram_load_tag(0);
++	tag1 = ispram_load_tag(0+SPRAM_TAG_STRIDE);
++
++	pa = tag0 & SPRAM_TAG0_PA_MASK;
++	size = tag1 & SPRAM_TAG1_SIZE_MASK;
++
++	if (size == 0)
++		return;
++
++	for (offset = 0; offset < size; offset += 8) {
++		datalo = *(unsigned int *) (PHYS_TO_K0(pa + offset));
++		datahi = *(unsigned int *) (PHYS_TO_K0(pa + offset + 4));
++		ispram_store_data(offset, datalo, datahi);
++	}
++}
++
++void ispram_refill(void)
++{
++	//probe_spram("ISPRAM", CPHYSADDR(&__imem),
++	//		&ispram_load_tag, &ispram_store_tag);
++	ispram_fill();
++}
++
+ void __cpuinit spram_config(void)
+ {
+ 	struct cpuinfo_mips *c = &current_cpu_data;
+--- arch/mips/kernel/traps.c	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/traps.c	2019-03-07 03:40:15.000000000 +0200
+@@ -559,6 +761,29 @@ void show_registers(struct pt_regs *regs
+ 	printk("\n");
+ }
+ 
++void show_registers_nmi(struct pt_regs *regs)
++{
++	const int field = 2 * sizeof(unsigned long);
++
++	__show_regs_nmi(regs);
++	//print_modules();
++	printk("Process %s (pid: %d, threadinfo=%p, task=%p, tls=%0*lx)\n",
++	       current->comm, current->pid, current_thread_info(), current,
++	      field, current_thread_info()->tp_value);
++	if (cpu_has_userlocal) {
++		unsigned long tls;
++
++		tls = read_c0_userlocal();
++		if (tls != current_thread_info()->tp_value)
++			printk("*HwTLS: %0*lx\n", field, tls);
++	}
++
++	show_stacktrace_nmi(current, regs);
++	//show_code((unsigned int __user *) regs->cp0_epc);
++	printk("\n");
++}
++
++
+ static int regs_to_trapnr(struct pt_regs *regs)
+ {
+ 	return (regs->cp0_cause >> 2) & 0x1f;
+@@ -1447,10 +1896,25 @@ asmlinkage void do_watch(struct pt_regs
+ 	 * Clear WP (bit 22) bit of cause register so we don't loop
+ 	 * forever.
+ 	 */
++	 #ifdef TCSUPPORT_XPON_HAL_API_EXT
++	 if(0){
++	 #else
++	 if(watchFlag){
++	 #endif
++	 dump_tlb_all();
++	 show_registers(regs);	 	 
++	 //show_regs(regs);
++	//compute_return_epc(regs);
++	panic("Caught WATCH exception - probably caused by stack overflow\n");
++		return;
++	}
++	else{
+ 	cause = read_c0_cause();
+ 	cause &= ~(1 << 22);
+ 	write_c0_cause(cause);
+-
++	#ifdef TCSUPPORT_XPON_HAL_API_EXT
++		checkWatch(regs);
++	#endif
+ 	/*
+ 	 * If the current thread has the watch registers loaded, save
+ 	 * their values and send SIGTRAP.  Otherwise another thread
+@@ -1730,8 +2198,10 @@ void ejtag_exception_handler(struct pt_r
+ NORET_TYPE void ATTRIB_NORET nmi_exception_handler(struct pt_regs *regs)
+ {
+ 	bust_spinlocks(1);
++	nmi_info_store(regs);
+ 	printk("NMI taken!!!!\n");
+-	die("NMI", regs);
++	//die("NMI", regs);
++	die_nmi("NMI", regs);
+ }
+ 
+ #define VECTORSPACING 0x100	/* for EI/VI mode */
+@@ -1834,10 +2304,15 @@ static void *set_vi_srs_handler(int n, v
+ 
+ 		memcpy(b, vec_start, handler_len);
+ #ifdef CONFIG_MIPS_MT_SMTC
++		if (!cpu_has_veic) 
+ 		BUG_ON(n > 7);	/* Vector index %d exceeds SMTC maximum. */
+ 
+ 		w = (u32 *)(b + mori_offset);
++#ifdef CONFIG_MIPS_TC3262
++		*w = (*w & 0xffff0000) | (n);
++#else
+ 		*w = (*w & 0xffff0000) | (0x100 << n);
++#endif
+ #endif /* CONFIG_MIPS_MT_SMTC */
+ 		w = (u32 *)(b + lui_offset);
+ 		*w = (*w & 0xffff0000) | (((u32)handler >> 16) & 0xffff);
+--- arch/mips/kernel/vpe.c	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/kernel/vpe.c	2019-03-07 03:40:15.000000000 +0200
+@@ -148,9 +148,9 @@ struct {
+ 	spinlock_t tc_list_lock;
+ 	struct list_head tc_list;	/* Thread contexts */
+ } vpecontrol = {
+-	.vpe_list_lock	= SPIN_LOCK_UNLOCKED,
++	.vpe_list_lock	= __SPIN_LOCK_UNLOCKED(vpecontrol.vpe_list_lock),
+ 	.vpe_list	= LIST_HEAD_INIT(vpecontrol.vpe_list),
+-	.tc_list_lock	= SPIN_LOCK_UNLOCKED,
++	.tc_list_lock	= __SPIN_LOCK_UNLOCKED(vpecontrol.tc_list_lock),
+ 	.tc_list	= LIST_HEAD_INIT(vpecontrol.tc_list)
+ };
+ 
+@@ -192,7 +192,7 @@ static struct tc *get_tc(int index)
+ 	}
+ 	spin_unlock(&vpecontrol.tc_list_lock);
+ 
+-	return NULL;
++	return res;//modify by xfu seams like a bug
+ }
+ 
+ /* allocate a vpe and associate it with this minor (or index) */
+--- arch/mips/mm/Makefile	2010-10-20 23:30:22.000000000 +0300
++++ mtk/linux-2.6.36/arch/mips/mm/Makefile	2019-03-07 03:40:15.000000000 +0200
+@@ -16,6 +16,7 @@ obj-$(CONFIG_CPU_MIPS64)	+= c-r4k.o cex-
+ obj-$(CONFIG_CPU_NEVADA)	+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R10000)	+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R3000)		+= c-r3k.o tlb-r3k.o
++obj-$(CONFIG_CPU_TC3162)	+= c-tc3162.o tlb-r3k.o pg-r4k.o
+ obj-$(CONFIG_CPU_R4300)		+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R4X00)		+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R5000)		+= c-r4k.o cex-gen.o tlb-r4k.o

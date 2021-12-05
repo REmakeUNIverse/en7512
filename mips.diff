@@ -1,0 +1,2408 @@
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/cpu.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/cpu.h
+--- linux-2.6.36/arch/mips/include/asm/cpu.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/cpu.h	2019-03-07 03:40:17.000000000 +0200
+@@ -72,6 +72,8 @@
+ #define PRID_IMP_R5500		0x5500
+ #define PRID_IMP_LOONGSON2	0x6300
+ 
++#define PRID_IMP_TC3162		0xcd00
++
+ #define PRID_IMP_UNKNOWN	0xff00
+ 
+ /*
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/io.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/io.h
+--- linux-2.6.36/arch/mips/include/asm/io.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/io.h	2019-03-07 03:40:17.000000000 +0200
+@@ -301,6 +301,156 @@
+ #define war_octeon_io_reorder_wmb()		do { } while (0)
+ #endif
+ 
++#ifdef TCSUPPORT_MT7510_E1
++#define __BUILD_MEMORY_SINGLE(pfx, bwlq, type, irq)			\
++									\
++static inline void pfx##write##bwlq(type val,				\
++				    volatile void __iomem *mem)		\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	war_octeon_io_reorder_wmb();					\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	__val = pfx##ioswab##bwlq(__mem, val);				\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	{\
++		*__mem = __val;						\
++		__asm__ __volatile("sync");			\
++	} else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++		type __tmp;						\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __writeq""\n\t"	\
++			"dsll32	%L0, %L0, 0"			"\n\t"	\
++			"dsrl32	%L0, %L0, 0"			"\n\t"	\
++			"dsll32	%M0, %M0, 0"			"\n\t"	\
++			"or	%L0, %L0, %M0"			"\n\t"	\
++			"sd	%L0, %2"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__tmp)					\
++			: "0" (__val), "m" (*__mem));			\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else								\
++		BUG();							\
++}									\
++									\
++static inline type pfx##read##bwlq(const volatile void __iomem *mem)	\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq(((unsigned long)(mem) & 0xf) + 0xbfb003a0);	\
++	__val = *__mem; \
++	__asm__ __volatile("sync");			\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	{\
++		__val = *__mem;						\
++		__asm__ __volatile("sync");			\
++	} else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __readq"	"\n\t"	\
++			"ld	%L0, %1"			"\n\t"	\
++			"dsra32	%M0, %L0, 0"			"\n\t"	\
++			"sll	%L0, %L0, 0"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__val)					\
++			: "m" (*__mem));				\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else {							\
++		__val = 0;						\
++		BUG();							\
++	}								\
++									\
++	return pfx##ioswab##bwlq(__mem, __val);				\
++}
++#else
++#if defined(WIFI_MODULE) && defined(CONFIG_MIPS_TC3262) && !defined(TCSUPPORT_CPU_EN7512) && !defined(TCSUPPORT_CPU_EN7521)
++extern void ahbErrChk(void);
++
++#define __BUILD_MEMORY_SINGLE(pfx, bwlq, type, irq)			\
++									\
++static inline void pfx##write##bwlq(type val,				\
++				    volatile void __iomem *mem)		\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	war_octeon_io_reorder_wmb();					\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	__val = pfx##ioswab##bwlq(__mem, val);				\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	\
++		*__mem = __val;						\
++	else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++		type __tmp;						\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __writeq""\n\t"	\
++			"dsll32	%L0, %L0, 0"			"\n\t"	\
++			"dsrl32	%L0, %L0, 0"			"\n\t"	\
++			"dsll32	%M0, %M0, 0"			"\n\t"	\
++			"or	%L0, %L0, %M0"			"\n\t"	\
++			"sd	%L0, %2"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__tmp)					\
++			: "0" (__val), "m" (*__mem));			\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else								\
++		BUG();							\
++}									\
++									\
++static inline type pfx##read##bwlq(const volatile void __iomem *mem)	\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	\
++		{ahbErrChk();__val = *__mem;}                           \
++	else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __readq"	"\n\t"	\
++			"ld	%L0, %1"			"\n\t"	\
++			"dsra32	%M0, %L0, 0"			"\n\t"	\
++			"sll	%L0, %L0, 0"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__val)					\
++			: "m" (*__mem));				\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else {							\
++		__val = 0;						\
++		BUG();							\
++	}								\
++									\
++	return pfx##ioswab##bwlq(__mem, __val);				\
++}
++
++#else
+ #define __BUILD_MEMORY_SINGLE(pfx, bwlq, type, irq)			\
+ 									\
+ static inline void pfx##write##bwlq(type val,				\
+@@ -370,6 +520,8 @@
+ 									\
+ 	return pfx##ioswab##bwlq(__mem, __val);				\
+ }
++#endif
++#endif
+ 
+ #define __BUILD_IOPORT_SINGLE(pfx, bwlq, type, p, slow)			\
+ 									\
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/irqflags.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/irqflags.h
+--- linux-2.6.36/arch/mips/include/asm/irqflags.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/irqflags.h	2019-03-07 03:40:17.000000000 +0200
+@@ -195,11 +195,15 @@
+ 	"	.set	pop						\n"
+ 	"	.endm							\n");
+ 
+-
++#ifdef TCSUPPORT_XPON_HAL_API_EXT
++extern void resetWatch(void);
++#endif
+ static inline void raw_local_irq_restore(unsigned long flags)
+ {
+ 	unsigned long __tmp1;
+-
++	#ifdef TCSUPPORT_XPON_HAL_API_EXT
++	resetWatch();
++	#endif
+ #ifdef CONFIG_MIPS_MT_SMTC
+ 	/*
+ 	 * SMTC kernel needs to do a software replay of queued
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/irq.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/irq.h
+--- linux-2.6.36/arch/mips/include/asm/irq.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/irq.h	2019-03-07 03:40:17.000000000 +0200
+@@ -113,7 +113,7 @@
+ 
+ #endif
+ 
+-extern void do_IRQ(unsigned int irq);
++extern void do_IRQ(int irq); //xflu 20120522
+ 
+ #ifdef CONFIG_MIPS_MT_SMTC_IRQAFF
+ 
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h
+--- linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h	2019-03-07 03:40:16.000000000 +0200
+@@ -8,6 +8,10 @@
+ #ifndef __ASM_MACH_GENERIC_MANGLE_PORT_H
+ #define __ASM_MACH_GENERIC_MANGLE_PORT_H
+ 
++#if defined(CONFIG_MIPS_TC3262)
++extern unsigned char io_swap_noneed;
++#endif
++
+ #define __swizzle_addr_b(port)	(port)
+ #define __swizzle_addr_w(port)	(port)
+ #define __swizzle_addr_l(port)	(port)
+@@ -29,13 +33,22 @@
+ 
+ # define ioswabb(a, x)		(x)
+ # define __mem_ioswabb(a, x)	(x)
++//auto Choose SWAP function according to platform;
++#if defined(CONFIG_MIPS_TC3262)
++# define ioswabw(a,x)       (io_swap_noneed ? (x) : le16_to_cpu(x) )
++# define __mem_ioswabw(a,x) (io_swap_noneed ? cpu_to_le16(x) : (x) )
++# define ioswabl(a,x)		(io_swap_noneed ? (x) : le32_to_cpu(x) )
++# define __mem_ioswabl(a,x)	(io_swap_noneed ? cpu_to_le32(x) : (x) )
++# define ioswabq(a,x)		(io_swap_noneed ? (x) : le64_to_cpu(x) )
++# define __mem_ioswabq(a,x) (io_swap_noneed ? cpu_to_le32(x) : (x) )
++#else
+ # define ioswabw(a, x)		le16_to_cpu(x)
+ # define __mem_ioswabw(a, x)	(x)
+ # define ioswabl(a, x)		le32_to_cpu(x)
+ # define __mem_ioswabl(a, x)	(x)
+ # define ioswabq(a, x)		le64_to_cpu(x)
+ # define __mem_ioswabq(a, x)	(x)
+-
++#endif
+ #else
+ 
+ # define ioswabb(a, x)		(x)
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/mipsregs.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/mipsregs.h
+--- linux-2.6.36/arch/mips/include/asm/mipsregs.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/mipsregs.h	2019-03-07 03:40:17.000000000 +0200
+@@ -111,6 +111,27 @@
+ #define CP0_TX39_CACHE	$7
+ 
+ /*
++ * TrendChip cache control register 
++ */
++#define CP0_CCTL 		$20		/* Lexra Cache Control Register */
++
++/*
++ * Lexra Cache Control Register fields
++ */
++#define CCTL_DINVAL	   	0x00000001
++#define CCTL_IINVAL		0x00000002
++#define CCTL_ILOCK		0x0000000c
++#define CCTL_IRAMFILL4 	0x00000010
++#define CCTL_IRAMOFF	0x00000020
++
++#define CCTL_IMEMFILL4 	0x00000010
++#define CCTL_IMEMOFF	0x00000020
++#define CCTL_DWB		0x00000100
++#define CCTL_DWBINVAL	0x00000200
++#define CCTL_DMEMON 	0x00000400
++#define CCTL_DMEMOFF 	0x00000800
++
++/*
+  * Coprocessor 1 (FPU) register names
+  */
+ #define CP1_REVISION   $0
+@@ -822,6 +843,10 @@
+ 	local_irq_restore(__flags);					\
+ } while (0)
+ 
++/* TrendChip cache control register */
++#define read_c0_cctl()		__read_32bit_c0_register($20, 0)
++#define write_c0_cctl(val)	__write_32bit_c0_register($20, 0, val)
++
+ #define read_c0_index()		__read_32bit_c0_register($0, 0)
+ #define write_c0_index(val)	__write_32bit_c0_register($0, 0, val)
+ 
+@@ -1037,12 +1062,18 @@
+ #define read_c0_taglo()		__read_32bit_c0_register($28, 0)
+ #define write_c0_taglo(val)	__write_32bit_c0_register($28, 0, val)
+ 
++#define read_c0_idatalo()		__read_32bit_c0_register($28, 1)
++#define write_c0_idatalo(val)	__write_32bit_c0_register($28, 1, val)
++
+ #define read_c0_dtaglo()	__read_32bit_c0_register($28, 2)
+ #define write_c0_dtaglo(val)	__write_32bit_c0_register($28, 2, val)
+ 
+ #define read_c0_taghi()		__read_32bit_c0_register($29, 0)
+ #define write_c0_taghi(val)	__write_32bit_c0_register($29, 0, val)
+ 
++#define read_c0_idatahi()		__read_32bit_c0_register($29, 1)
++#define write_c0_idatahi(val)	__write_32bit_c0_register($29, 1, val)
++
+ #define read_c0_errorepc()	__read_ulong_c0_register($30, 0)
+ #define write_c0_errorepc(val)	__write_ulong_c0_register($30, 0, val)
+ 
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/module.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/module.h
+--- linux-2.6.36/arch/mips/include/asm/module.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/module.h	2019-03-07 03:40:17.000000000 +0200
+@@ -84,6 +84,8 @@
+ #define MODULE_PROC_FAMILY "MIPS64_R2 "
+ #elif defined CONFIG_CPU_R3000
+ #define MODULE_PROC_FAMILY "R3000 "
++#elif defined CONFIG_CPU_TC3162
++#define MODULE_PROC_FAMILY "TC3162 "
+ #elif defined CONFIG_CPU_TX39XX
+ #define MODULE_PROC_FAMILY "TX39XX "
+ #elif defined CONFIG_CPU_VR41XX
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/pgtable-32.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable-32.h
+--- linux-2.6.36/arch/mips/include/asm/pgtable-32.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable-32.h	2019-03-07 03:40:17.000000000 +0200
+@@ -159,7 +159,7 @@
+ #define pte_unmap(pte) ((void)(pte))
+ #define pte_unmap_nested(pte) ((void)(pte))
+ 
+-#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 
+ /* Swap entries must have VALID bit cleared. */
+ #define __swp_type(x)		(((x).val >> 10) & 0x1f)
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/pgtable-bits.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable-bits.h
+--- linux-2.6.36/arch/mips/include/asm/pgtable-bits.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable-bits.h	2019-03-07 03:40:17.000000000 +0200
+@@ -50,7 +50,7 @@
+ #define _CACHE_SHIFT                3
+ #define _CACHE_MASK                 (7<<3)
+ 
+-#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 
+ #define _PAGE_PRESENT               (1<<0)  /* implemented in software */
+ #define _PAGE_READ                  (1<<1)  /* implemented in software */
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/pgtable.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable.h
+--- linux-2.6.36/arch/mips/include/asm/pgtable.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable.h	2019-03-07 03:40:17.000000000 +0200
+@@ -146,7 +146,7 @@
+ static inline void set_pte(pte_t *ptep, pte_t pteval)
+ {
+ 	*ptep = pteval;
+-#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX)
++#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX) && !defined(CONFIG_CPU_TC3162)
+ 	if (pte_val(pteval) & _PAGE_GLOBAL) {
+ 		pte_t *buddy = ptep_buddy(ptep);
+ 		/*
+@@ -162,7 +162,7 @@
+ 
+ static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
+ {
+-#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX)
++#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX) && !defined(CONFIG_CPU_TC3162)
+ 	/* Preserve global status for the pair */
+ 	if (pte_val(*ptep_buddy(ptep)) & _PAGE_GLOBAL)
+ 		set_pte_at(mm, addr, ptep, __pte(_PAGE_GLOBAL));
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/processor.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/processor.h
+--- linux-2.6.36/arch/mips/include/asm/processor.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/processor.h	2019-03-07 03:40:17.000000000 +0200
+@@ -118,11 +118,15 @@
+ 	dspreg_t        dspr[NUM_DSP_REGS];
+ 	unsigned int    dspcontrol;
+ };
+-
++#ifdef TCSUPPORT_XPON_HAL_API_EXT
++#define INIT_CPUMASK { \
++	{7,} \
++}
++#else
+ #define INIT_CPUMASK { \
+ 	{0,} \
+ }
+-
++#endif
+ struct mips3264_watch_reg_state {
+ 	/* The width of watchlo is 32 in a 32 bit kernel and 64 in a
+ 	   64 bit kernel.  We use unsigned long as it has the same
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/spram.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/spram.h
+--- linux-2.6.36/arch/mips/include/asm/spram.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/spram.h	2019-03-07 03:40:17.000000000 +0200
+@@ -7,4 +7,8 @@
+ static inline void spram_config(void) { };
+ #endif /* CONFIG_CPU_MIPSR2 */
+ 
++extern int is_sram_addr(void *p);
++extern void *alloc_sram(int n);
++extern void free_sram(void *p, int n);
++
+ #endif /* _MIPS_SPRAM_H */
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/stackframe.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/stackframe.h
+--- linux-2.6.36/arch/mips/include/asm/stackframe.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/stackframe.h	2019-03-07 03:40:17.000000000 +0200
+@@ -24,7 +24,7 @@
+  */
+ #ifdef CONFIG_MIPS_MT_SMTC
+ #define STATMASK 0x1e
+-#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ #define STATMASK 0x3f
+ #else
+ #define STATMASK 0x1f
+@@ -187,8 +187,6 @@
+ 		 * need it to operate correctly
+ 		 */
+ 		LONG_S	$0, PT_R0(sp)
+-		mfc0	v1, CP0_STATUS
+-		LONG_S	$2, PT_R2(sp)
+ #ifdef CONFIG_MIPS_MT_SMTC
+ 		/*
+ 		 * Ideally, these instructions would be shuffled in
+@@ -199,6 +197,8 @@
+ 		.set	mips0
+ 		LONG_S	v1, PT_TCSTATUS(sp)
+ #endif /* CONFIG_MIPS_MT_SMTC */
++		mfc0	v1, CP0_STATUS
++		LONG_S	$2, PT_R2(sp)
+ 		LONG_S	$4, PT_R4(sp)
+ 		LONG_S	$5, PT_R5(sp)
+ 		LONG_S	v1, PT_STATUS(sp)
+@@ -286,7 +286,7 @@
+ 		LONG_L	$30, PT_R30(sp)
+ 		.endm
+ 
+-#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 
+ 		.macro	RESTORE_SOME
+ 		.set	push
+@@ -386,6 +386,7 @@
+ 		andi	v1, TCSTATUS_IXMT
+ 		bnez	v1, 0f
+ 
++//#ifndef CONFIG_MIPS_TC3262
+ /*
+  * We'd like to detect any IPIs queued in the tiny window
+  * above and request an software interrupt to service them
+@@ -408,6 +409,8 @@
+ 		mfc0	v0, CP0_CAUSE
+ 		ori	v0, v0, C_SW1
+ 		mtc0	v0, CP0_CAUSE
++//#endif
++
+ 0:
+ 		/*
+ 		 * This test should really never branch but
+@@ -581,7 +584,7 @@
+ #endif /* CONFIG_MIPS_MT_SMTC */
+ 		mfc0	t0, CP0_STATUS
+ 		li	t1, ST0_CU0 | (STATMASK & ~1)
+-#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 		andi	t2, t0, ST0_IEP
+ 		srl	t2, 2
+ 		or	t0, t2
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/string.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/string.h
+--- linux-2.6.36/arch/mips/include/asm/string.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/string.h	2019-03-07 03:40:17.000000000 +0200
+@@ -84,7 +84,7 @@
+ 	"addiu\t%1,1\n\t"
+ 	"bnez\t%2,1b\n\t"
+ 	"lbu\t%2,(%0)\n\t"
+-#if defined(CONFIG_CPU_R3000)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TC3162)
+ 	"nop\n\t"
+ #endif
+ 	"move\t%2,$1\n"
+@@ -117,7 +117,7 @@
+ 	"bnez\t%3,1b\n\t"
+ 	"addiu\t%1,1\n"
+ 	"2:\n\t"
+-#if defined(CONFIG_CPU_R3000)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TC3162)
+ 	"nop\n\t"
+ #endif
+ 	"move\t%3,$1\n"
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm: tc3162
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/thread_info.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/thread_info.h
+--- linux-2.6.36/arch/mips/include/asm/thread_info.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/thread_info.h	2019-03-07 03:40:17.000000000 +0200
+@@ -62,8 +62,12 @@
+ 
+ /* thread information allocation */
+ #if defined(CONFIG_PAGE_SIZE_4KB) && defined(CONFIG_32BIT)
++#if defined(CONFIG_CPU_TC3162) || defined(CONFIG_MIPS_TC3262)
++#define THREAD_SIZE_ORDER (2)
++#else
+ #define THREAD_SIZE_ORDER (1)
+ #endif
++#endif
+ #if defined(CONFIG_PAGE_SIZE_4KB) && defined(CONFIG_64BIT)
+ #define THREAD_SIZE_ORDER (2)
+ #endif
+@@ -88,8 +92,12 @@
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
+ #else
++#if defined(CONFIG_CPU_TC3162) || defined(CONFIG_MIPS_TC3262)
++#define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
++#else
+ #define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
+ #endif
++#endif
+ 
+ #define free_thread_info(info) kfree(info)
+ 
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/include/asm/time.h tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/time.h
+--- linux-2.6.36/arch/mips/include/asm/time.h	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/time.h	2019-03-07 03:40:17.000000000 +0200
+@@ -22,6 +22,14 @@
+ extern spinlock_t rtc_lock;
+ 
+ /*
++ * Timer interrupt functions.
++ * mips_timer_state is needed for high precision timer calibration.
++ * mips_timer_ack may be NULL if the interrupt is self-recoverable.
++ */
++extern void (*board_time_init)(void);
++extern void (*mips_timer_ack)(void);
++
++/*
+  * RTC ops.  By default, they point to weak no-op RTC functions.
+  *	rtc_mips_set_time - reverse the above translation and set time to RTC.
+  *	rtc_mips_set_mmss - similar to rtc_set_time, but only min and sec need
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/Kbuild tplink-vr300/mtk/linux-2.6.36/arch/mips/Kbuild
+--- linux-2.6.36/arch/mips/Kbuild	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/Kbuild	2019-03-07 03:40:18.000000000 +0200
+@@ -1,7 +1,7 @@
+ # Fail on warnings - also for files referenced in subdirs
+ # -Werror can be disabled for specific files using:
+ # CFLAGS_<file.o> := -Wno-error
+-subdir-ccflags-y := -Werror
++#subdir-ccflags-y := -Werror
+ 
+ # platform specific definitions
+ include arch/mips/Kbuild.platforms
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/Kbuild.platforms tplink-vr300/mtk/linux-2.6.36/arch/mips/Kbuild.platforms
+--- linux-2.6.36/arch/mips/Kbuild.platforms	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/Kbuild.platforms	2019-03-07 03:40:18.000000000 +0200
+@@ -18,6 +18,7 @@
+ platforms += pnx833x
+ platforms += pnx8550
+ platforms += powertv
++platforms += ralink
+ platforms += rb532
+ platforms += sgi-ip22
+ platforms += sgi-ip27
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/Kconfig tplink-vr300/mtk/linux-2.6.36/arch/mips/Kconfig
+--- linux-2.6.36/arch/mips/Kconfig	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/Kconfig	2019-03-07 03:40:18.000000000 +0200
+@@ -252,6 +252,65 @@
+ 	  This enables support for the MIPS Technologies Malta evaluation
+ 	  board.
+ 
++config MIPS_TC3262
++	bool "TrendChip's TC3262 Board"
++	select CPU_MIPSR2_IRQ_VI
++	select CPU_MIPSR2_IRQ_EI
++	select NO_EXCEPT_FILL
++	select BOOT_RAW
++	select CEVT_R4K
++	select CSRC_R4K
++	select DMA_NONCOHERENT
++	select IRQ_CPU
++	select HW_HAS_PCI
++	select SWAP_IO_SPACE
++	select SYS_HAS_CPU_MIPS32_R1
++	select SYS_HAS_CPU_MIPS32_R2
++	select SYS_HAS_CPU_MIPS64_R1
++	select SYS_HAS_EARLY_PRINTK
++	select SYS_SUPPORTS_32BIT_KERNEL
++	select SYS_SUPPORTS_BIG_ENDIAN
++	select SYS_SUPPORTS_LITTLE_ENDIAN
++	select SYS_SUPPORTS_MULTITHREADING
++	select TC3162_ADSL
++	select TC3162_IMEM
++	select TC3162_DMEM
++	help
++	  This enables support for TrendChip's TC3262 based board.  
++	  board.
++
++config MIPS_TC3182
++	bool "TrendChip's TC3182 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for TrendChip's TC3182 based board.  
++	  board.
++
++config MIPS_RT63165
++	bool "Ralink's RT63165 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for Ralink's RT63165 based board.  
++
++config MIPS_RT65168
++	bool "Ralink's RT65168 Board"
++	depends on MIPS_TC3262
++	select RALINK_VDSL
++	help
++	  This enables support for Ralink's RT65168 based board.  
++
++config MIPS_RT63365
++	bool "Ralink's RT63365 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for Ralink's RT63365 based board.  
++config MIPS_MT7510
++	bool "MediaTek's MT7510 Board"
++	depends on MIPS_TC3262
++	select RALINK_VDSL
++	help
++	  This enables support for MediaTek's MT7510 based board.  
++	  
+ config MIPS_SIM
+ 	bool 'MIPS simulator (MIPSsim)'
+ 	select CEVT_R4K
+@@ -1053,6 +1112,32 @@
+ config BOOT_ELF32
+ 	bool
+ 
++config MIPS_PATENTFREE
++	bool
++	depends on SYS_HAS_CPU_TC3162
++
++config TC3162_ADSL
++	bool 
++	depends on SYS_HAS_CPU_TC3162
++
++config RALINK_VDSL
++	bool 
++	depends on SYS_HAS_CPU_TC3162
++
++config TC3162_IMEM
++	bool 
++	depends on SYS_HAS_CPU_TC3162
++
++config TC3162_DMEM
++	bool 
++	depends on SYS_HAS_CPU_TC3162
++
++config IMEM_SIZE
++	int
++	default "32768" if MIPS_TC3162U || MIPS_TC3182 || MIPS_TC3262
++	default "16384" if MIPS_TC3162
++	depends on TC3162_IMEM
++
+ config MIPS_L1_CACHE_SHIFT
+ 	int
+ 	default "4" if MACH_DECSTATION || MIKROTIK_RB532 || PMC_MSP4200_EVAL
+@@ -2303,3 +2388,5 @@
+ source "crypto/Kconfig"
+ 
+ source "lib/Kconfig"
++
++source "pwModel/Kconfig"
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel: asm-offsets.s
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/cevt-r4k.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cevt-r4k.c
+--- linux-2.6.36/arch/mips/kernel/cevt-r4k.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cevt-r4k.c	2019-03-07 03:40:15.000000000 +0200
+@@ -14,6 +14,7 @@
+ #include <asm/smtc_ipi.h>
+ #include <asm/time.h>
+ #include <asm/cevt-r4k.h>
++#include <asm/tc3162/tc3162.h>
+ 
+ /*
+  * The SMTC Kernel for the 34K, 1004K, et. al. replaces several
+@@ -47,12 +48,12 @@
+ int cp0_timer_irq_installed;
+ 
+ #ifndef CONFIG_MIPS_MT_SMTC
+-
+ irqreturn_t c0_compare_interrupt(int irq, void *dev_id)
+ {
+ 	const int r2 = cpu_has_mips_r2;
+ 	struct clock_event_device *cd;
+ 	int cpu = smp_processor_id();
++	unsigned int tmp;
+ 
+ 	/*
+ 	 * Suckage alert:
+@@ -63,6 +64,16 @@
+ 	if (handle_perf_irq(r2))
+ 		goto out;
+ 
++	if (isRT63165 || isRT63365 || isMT751020 || isMT7505 || isEN751221) {				
++		if (cpu == 0) {
++			mips_timer_ack();
++		}
++		else{
++			tmp = regRead32(CR_CPUTMR_CNT1) + (mips_hpt_frequency/HZ);
++                        regWrite32(CR_CPUTMR_CMR1, tmp);
++		}
++	}
++
+ 	/*
+ 	 * The same applies to performance counter interrupts.  But with the
+ 	 * above we now know that the reason we got here must be a timer
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/cevt-smtc.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cevt-smtc.c
+--- linux-2.6.36/arch/mips/kernel/cevt-smtc.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cevt-smtc.c	2019-03-07 03:40:15.000000000 +0200
+@@ -15,6 +15,7 @@
+ #include <asm/smtc_ipi.h>
+ #include <asm/time.h>
+ #include <asm/cevt-r4k.h>
++#include <asm/tc3162/tc3162.h>
+ 
+ /*
+  * Variant clock event timer support for SMTC on MIPS 34K, 1004K
+@@ -229,12 +230,20 @@
+ 				goto repeat;
+ 	}
+ }
+-
+-
++#ifdef TCSUPPORT_XPON_HAL_API_EXT
++extern void resetWatchAlways(void);
++#endif
+ irqreturn_t c0_compare_interrupt(int irq, void *dev_id)
+ {
+ 	int cpu = smp_processor_id();
+ 
++	if (isRT63165 || isRT63365 || isMT751020 || isMT7505 || isEN751221) {				
++		mips_timer_ack();
++	}
++#ifdef TCSUPPORT_XPON_HAL_API_EXT
++	resetWatchAlways();
++#endif
++
+ 	/* If we're running SMTC, we've got MIPS MT and therefore MIPS32R2 */
+ 	handle_perf_irq(1);
+ 
+@@ -243,9 +252,77 @@
+ 		write_c0_compare(read_c0_compare());
+ 		smtc_distribute_timer(cpu_data[cpu].vpe_id);
+ 	}
++ 
+ 	return IRQ_HANDLED;
+ }
+ 
++#ifdef CONFIG_MIPS_TC3262
++unsigned int mips_hpt_frequency_true;
++unsigned long loops_per_jiffy_true = 0;
++extern unsigned long loops_per_jiffy;
++unsigned long udelay_val_true[NR_CPUS];
++static unsigned long cycles_per_jiffy __read_mostly;
++extern struct clocksource clocksource_mips;
++
++int reset_time_value(int time_shift){
++	u64 temp=0;
++	u32 shift=0;
++	int i=0;
++	unsigned int cpu = smp_processor_id();
++		
++#ifdef DBG
++	printk("cycles_per_jiffy %x\n",cycles_per_jiffy);
++	printk("true mips_hpt_frequency  %x shift %d\n",mips_hpt_frequency_true,time_shift);
++#endif	
++	if(loops_per_jiffy_true == 0){
++		//save correct value
++		if(loops_per_jiffy == (1<<12)){
++			printk("init not over\n");	
++			return -1;
++		}else{
++			loops_per_jiffy_true = loops_per_jiffy;
++			for(i=0;i<NR_CPUS;i++){
++				udelay_val_true[i] = cpu_data[i].udelay_val;
++			}
++		}
++	} 
++#ifdef DBG	
++	printk("true loops_per_jiffie  %x loops_per_jiffie %x\n", loops_per_jiffy_true, loops_per_jiffy);
++#endif
++	local_irq_disable();
++	mips_hpt_frequency = (mips_hpt_frequency_true>>(time_shift));
++#ifdef DBG	
++	printk("After mips_hpt_frequency %x \n",mips_hpt_frequency);
++#endif
++	/* Calculate cache parameters.	*/
++	cycles_per_jiffy = (mips_hpt_frequency + HZ / 2) / HZ;
++#ifdef DBG	
++	printk("cycles_per_jiffy %x\n",cycles_per_jiffy);
++#endif	
++	/* Calclate a somewhat reasonable rating value */
++	clocksource_mips.rating = 200 + mips_hpt_frequency / 10000000;
++	clocksource_set_clock(&clocksource_mips, mips_hpt_frequency);
++
++	//about date
++	clocksource_change_rating(&clocksource_mips, clocksource_mips.rating);
++#ifdef DBG	
++	printk("clocksource_mips.rate %x shift %x mult %x cycle_interval null\n",clocksource_mips.rating,clocksource_mips.shift,clocksource_mips.mult/*,clocksource_mips.cycle_interval*/);
++#endif
++	//about delay
++	for(i=0;i<NR_CPUS;i++){
++		cpu_data[i].udelay_val = (udelay_val_true[i] >> (time_shift));
++	}
++	loops_per_jiffy = loops_per_jiffy_true >> (time_shift) ;
++#ifdef DBG	
++	printk("loops_per_jiffy %x\n",loops_per_jiffy);
++#endif
++	
++	local_irq_enable();
++	
++	return 0;
++}
++EXPORT_SYMBOL(reset_time_value);
++#endif
+ 
+ int __cpuinit smtc_clockevent_init(void)
+ {
+@@ -258,6 +335,10 @@
+ 
+ 	if (!cpu_has_counter || !mips_hpt_frequency)
+ 		return -ENXIO;
++	cycles_per_jiffy =(mips_hpt_frequency + HZ / 2) / HZ;
++#ifdef CONFIG_MIPS_TC3262 
++	mips_hpt_frequency_true = mips_hpt_frequency;
++#endif	
+ 	if (cpu == 0) {
+ 		for (i = 0; i < num_possible_cpus(); i++) {
+ 			smtc_nextinvpe[i] = 0;
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/cpu-probe.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cpu-probe.c
+--- linux-2.6.36/arch/mips/kernel/cpu-probe.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cpu-probe.c	2019-03-07 03:40:15.000000000 +0200
+@@ -25,6 +25,9 @@
+ #include <asm/system.h>
+ #include <asm/watch.h>
+ #include <asm/spram.h>
++#ifdef TCSUPPORT_CPU_EN7512
++#include <asm/tc3162/tc3162.h>
++#endif
+ /*
+  * Not all of the MIPS CPUs have the "wait" instruction available. Moreover,
+  * the implementation of the "wait" feature differs between CPU families. This
+@@ -72,6 +75,17 @@
+ 	return;
+ }
+ 
++#ifdef TCSUPPORT_CPU_EN7512
++void cpu_wait_en7512(void)
++{
++	volatile unsigned int ram_access = 0;
++	int cnt;
++
++	for (cnt = 0; cnt < 100; cnt++)
++		ram_access = VPint(0xA0000000); /* DRAM access */
++}
++#endif
++
+ /*
+  * The RM7000 variant has to handle erratum 38.  The workaround is to not
+  * have any pending stores when the WAIT instruction is executed.
+@@ -201,6 +215,11 @@
+ 		cpu_wait = r4k_wait;
+ 		if (read_c0_config7() & MIPS_CONF7_WII)
+ 			cpu_wait = r4k_wait_irqoff;
++	#ifdef TCSUPPORT_CPU_EN7512
++		if (isEN7512){
++			cpu_wait = cpu_wait_en7512;
++		}
++	#endif
+ 		break;
+ 
+ 	case CPU_74K:
+@@ -356,6 +375,13 @@
+ 			c->options |= MIPS_CPU_FPU;
+ 		c->tlbsize = 64;
+ 		break;
++	case PRID_IMP_TC3162:
++		c->cputype = CPU_R3000;
++		c->isa_level = MIPS_CPU_ISA_I;
++		c->options = MIPS_CPU_TLB | MIPS_CPU_3K_CACHE |
++		             MIPS_CPU_NOFPUEX;
++		c->tlbsize = 32;
++		break;
+ 	case PRID_IMP_R4000:
+ 		if (read_c0_config() & CONF_SC) {
+ 			if ((c->processor_id & 0xff) >= PRID_REV_R4400) {
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/csrc-r4k.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/csrc-r4k.c
+--- linux-2.6.36/arch/mips/kernel/csrc-r4k.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/csrc-r4k.c	2019-03-07 03:40:15.000000000 +0200
+@@ -15,7 +15,8 @@
+ 	return read_c0_count();
+ }
+ 
+-static struct clocksource clocksource_mips = {
++//static 
++struct clocksource clocksource_mips = {
+ 	.name		= "MIPS",
+ 	.read		= c0_hpt_read,
+ 	.mask		= CLOCKSOURCE_MASK(32),
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/entry.S tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/entry.S
+--- linux-2.6.36/arch/mips/kernel/entry.S	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/entry.S	2019-03-07 03:40:15.000000000 +0200
+@@ -123,7 +123,7 @@
+ 	SAVE_AT
+ 	SAVE_TEMP
+ 	LONG_L	v0, PT_STATUS(sp)
+-#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 	and	v0, ST0_IEP
+ #else
+ 	and	v0, ST0_IE
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/genex.S tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/genex.S
+--- linux-2.6.36/arch/mips/kernel/genex.S	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/genex.S	2019-03-07 03:40:15.000000000 +0200
+@@ -178,7 +178,7 @@
+ 	.set	push
+ 	.set	noat
+ 	mfc0	k0, CP0_STATUS
+-#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 	and	k0, ST0_IEP
+ 	bnez	k0, 1f
+ 
+@@ -278,6 +278,7 @@
+ 	 * service routine will have cleared the state, and any active
+ 	 * level represents a new or otherwised unserviced event...
+ 	 */
++#ifndef CONFIG_MIPS_TC3262
+ 	mfc0	t1, CP0_STATUS
+ 	and	t0, a0, t1
+ #ifdef CONFIG_MIPS_MT_SMTC_IM_BACKSTOP
+@@ -288,6 +289,7 @@
+ 	xor	t1, t1, t0
+ 	mtc0	t1, CP0_STATUS
+ 	_ehb
++#endif
+ #endif /* CONFIG_MIPS_MT_SMTC */
+ 	CLI
+ #ifdef CONFIG_TRACE_IRQFLAGS
+@@ -512,7 +514,7 @@
+ 	get_saved_sp	/* k1 := current_thread_info */
+ 	.set	noreorder
+ 	MFC0	k0, CP0_EPC
+-#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 	ori	k1, _THREAD_MASK
+ 	xori	k1, _THREAD_MASK
+ 	LONG_L	v1, TI_TP_VALUE(k1)
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/irq.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/irq.c
+--- linux-2.6.36/arch/mips/kernel/irq.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/irq.c	2019-03-07 03:40:15.000000000 +0200
+@@ -156,13 +156,14 @@
+  * SMP cross-CPU interrupts have their own specific
+  * handlers).
+  */
+-void __irq_entry do_IRQ(unsigned int irq)
++__IMEM void __irq_entry do_IRQ(int irq)//xflu 20120522
+ {
+ 	irq_enter();
+ 	__DO_IRQ_SMTC_HOOK(irq);
+ 	generic_handle_irq(irq);
+ 	irq_exit();
+ }
++EXPORT_SYMBOL(do_IRQ);
+ 
+ #ifdef CONFIG_MIPS_MT_SMTC_IRQAFF
+ /*
+@@ -170,7 +171,7 @@
+  * IRQ affinity, we have this variant that skips the affinity check.
+  */
+ 
+-void __irq_entry do_IRQ_no_affinity(unsigned int irq)
++__IMEM void __irq_entry do_IRQ_no_affinity(unsigned int irq)
+ {
+ 	irq_enter();
+ 	__NO_AFFINITY_IRQ_SMTC_HOOK(irq);
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/Makefile tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/Makefile
+--- linux-2.6.36/arch/mips/kernel/Makefile	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/Makefile	2019-03-07 03:40:15.000000000 +0200
+@@ -36,6 +36,7 @@
+ obj-$(CONFIG_CPU_MIPS32)	+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_MIPS64)	+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R3000)		+= r2300_fpu.o r2300_switch.o
++obj-$(CONFIG_CPU_TC3162)	+= r2300_fpu.o r2300_switch.o
+ obj-$(CONFIG_CPU_R4300)		+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R4X00)		+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R5000)		+= r4k_fpu.o r4k_switch.o
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/mips-mt.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/mips-mt.c
+--- linux-2.6.36/arch/mips/kernel/mips-mt.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/mips-mt.c	2019-03-07 03:40:15.000000000 +0200
+@@ -31,7 +31,7 @@
+ 
+ __setup("maxvpes=", maxvpes);
+ 
+-int tclimit;
++int tclimit = 4;
+ 
+ static int __init maxtcs(char *str)
+ {
+@@ -125,12 +125,108 @@
+ 	local_irq_restore(flags);
+ }
+ 
++/*
++ * Dump new MIPS MT state for the core. Does not leave TCs halted.
++ * Takes an argument which taken to be a pre-call MVPControl value.
++ */
++
++void mips_mt_regdump_nmi(unsigned long mvpctl)
++{
++	unsigned long flags;
++	unsigned long vpflags;
++	unsigned long mvpconf0;
++	int nvpe;
++	int ntc;
++	int i;
++	int tc;
++	unsigned long haltval;
++	unsigned long tcstatval;
++#ifdef CONFIG_MIPS_MT_SMTC
++	void smtc_soft_dump(void);
++#endif /* CONFIG_MIPT_MT_SMTC */
++
++	local_irq_save(flags);
++	vpflags = dvpe();
++	printk("=== MIPS MT State Dump ===\n");
++	printk("-- Global State --\n");
++	printk("   MVPControl Passed: %08lx\n", mvpctl);
++	printk("   MVPControl Read: %08lx\n", vpflags);
++	printk("   MVPConf0 : %08lx\n", (mvpconf0 = read_c0_mvpconf0()));
++	nvpe = ((mvpconf0 & MVPCONF0_PVPE) >> MVPCONF0_PVPE_SHIFT) + 1;
++	ntc = ((mvpconf0 & MVPCONF0_PTC) >> MVPCONF0_PTC_SHIFT) + 1;
++	printk("-- per-VPE State --\n");
++	for (i = 0; i < nvpe; i++) {
++		for (tc = 0; tc < ntc; tc++) {
++			settc(tc);
++			if ((read_tc_c0_tcbind() & TCBIND_CURVPE) == i) {
++				printk("  VPE %d\n", i);
++				printk("   VPEControl : %08lx\n",
++				       read_vpe_c0_vpecontrol());
++				printk("   VPEConf0 : %08lx\n",
++				       read_vpe_c0_vpeconf0());
++				printk("   VPE%d.Status : %08lx\n",
++				       i, read_vpe_c0_status());
++				//printk("   VPE%d.EPC : %08lx %pS\n",
++				//       i, read_vpe_c0_epc(),
++				//       (void *) read_vpe_c0_epc());
++				printk("   VPE%d.EPC : %08lx\n",
++				       i, read_vpe_c0_epc());
++				printk("   VPE%d.Cause : %08lx\n",
++				       i, read_vpe_c0_cause());
++				printk("   VPE%d.Config7 : %08lx\n",
++				       i, read_vpe_c0_config7());
++				break; /* Next VPE */
++			}
++		}
++	}
++	printk("-- per-TC State --\n");
++	for (tc = 0; tc < ntc; tc++) {
++		settc(tc);
++		if (read_tc_c0_tcbind() == read_c0_tcbind()) {
++			/* Are we dumping ourself?  */
++			haltval = 0; /* Then we're not halted, and mustn't be */
++			tcstatval = flags; /* And pre-dump TCStatus is flags */
++			printk("  TC %d (current TC with VPE EPC above)\n", tc);
++		} else {
++			haltval = read_tc_c0_tchalt();
++			write_tc_c0_tchalt(1);
++			tcstatval = read_tc_c0_tcstatus();
++			printk("  TC %d\n", tc);
++		}
++		printk("   TCStatus : %08lx\n", tcstatval);
++		printk("   TCBind : %08lx\n", read_tc_c0_tcbind());
++		//printk("   TCRestart : %08lx %pS\n",
++		//       read_tc_c0_tcrestart(), (void *) read_tc_c0_tcrestart());
++		printk("   TCRestart : %08lx\n",
++		       read_tc_c0_tcrestart());
++		printk("   TCHalt : %08lx\n", haltval);
++		printk("   TCContext : %08lx\n", read_tc_c0_tccontext());
++		if (!haltval)
++			write_tc_c0_tchalt(0);
++	}
++#ifdef CONFIG_MIPS_MT_SMTC
++	smtc_soft_dump();
++#endif /* CONFIG_MIPT_MT_SMTC */
++	printk("===========================\n");
++	evpe(vpflags);
++	local_irq_restore(flags);
++}
++
++
++static int mt_opt_es;
+ static int mt_opt_norps;
+ static int mt_opt_rpsctl = -1;
+ static int mt_opt_nblsu = -1;
+ static int mt_opt_forceconfig7;
+ static int mt_opt_config7 = -1;
+ 
++static int __init es_set(char *str)
++{
++	get_option(&str, &mt_opt_es);
++	return 1;
++}
++__setup("es=", es_set);
++
+ static int __init rps_disable(char *s)
+ {
+ 	mt_opt_norps = 1;
+@@ -209,6 +305,13 @@
+ 	unsigned int oconfig7 = read_c0_config7();
+ 	unsigned int nconfig7 = oconfig7;
+ 
++	if (mt_opt_es >= 0) {
++		printk("34K sync es set to %d.\n", mt_opt_es);
++		if (mt_opt_es)
++			nconfig7 |= (1 << 8);
++		else
++			nconfig7 &= ~(1 << 8);
++	}
+ 	if (mt_opt_norps) {
+ 		printk("\"norps\" option deprectated: use \"rpsctl=\"\n");
+ 	}
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c
+--- linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c	2019-03-07 03:40:15.000000000 +0200
+@@ -73,6 +73,28 @@
+ 	if (copy_from_user(&new_mask, user_mask_ptr, sizeof(new_mask)))
+ 		return -EFAULT;
+ 
++
++#ifdef CONFIG_MIPS_MT_SMP
++#ifndef CONFIG_MIPS_MT_SMTC
++	printk("\r\n\r\n%s new_mask origin value is %08x\r\n\r\n", __FUNCTION__, *new_mask);
++	if(*(unsigned long *)new_mask == 0x8)
++	{
++		*(unsigned long *)new_mask = 0x2;
++	}
++	else if(*(unsigned long *)new_mask == 0xf)
++	{
++		*(unsigned long *)new_mask = 0x3;
++	}
++	else
++	{
++		*(unsigned long *)new_mask = 0x1;
++	}
++	
++	printk("\r\n\r\n%s new_mask changed value is %08x\r\n\r\n", __FUNCTION__, *new_mask);
++#endif
++#endif
++
++
+ 	get_online_cpus();
+ 	rcu_read_lock();
+ 
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/smp-mt.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/smp-mt.c
+--- linux-2.6.36/arch/mips/kernel/smp-mt.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/smp-mt.c	2019-03-07 03:40:15.000000000 +0200
+@@ -151,6 +151,10 @@
+ 
+ static void __cpuinit vsmp_init_secondary(void)
+ {
++#ifdef CONFIG_MIPS_TC3262
++	write_c0_status((read_c0_status() & ~ST0_IM ) |
++	                (STATUSF_IP0 | STATUSF_IP1)); 
++#else
+ 	extern int gic_present;
+ 
+ 	/* This is Malta specific: IPI,performance and timer inetrrupts */
+@@ -160,6 +164,7 @@
+ 	else
+ 		change_c0_status(ST0_IM, STATUSF_IP0 | STATUSF_IP1 |
+ 					 STATUSF_IP6 | STATUSF_IP7);
++#endif
+ }
+ 
+ static void __cpuinit vsmp_smp_finish(void)
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/smtc.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/smtc.c
+--- linux-2.6.36/arch/mips/kernel/smtc.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/smtc.c	2019-03-07 03:40:15.000000000 +0200
+@@ -42,6 +42,9 @@
+ #include <asm/addrspace.h>
+ #include <asm/smtc.h>
+ #include <asm/smtc_proc.h>
++#ifdef CONFIG_MIPS_TC3262
++#include <asm/tc3162/tc3162.h>
++#endif
+ 
+ /*
+  * SMTC Kernel needs to manipulate low-level CPU interrupt mask
+@@ -100,7 +103,8 @@
+ 
+ /* Boot command line configuration overrides */
+ 
+-static int vpe0limit;
++static int vpe0limit = 3;
++
+ static int ipibuffers;
+ static int nostlb;
+ static int asidmask;
+@@ -469,6 +473,12 @@
+ 	for (tc = 0, vpe = 0 ; (vpe < nvpe) && (tc < ntc) ; vpe++) {
+ 		if (tcpervpe[vpe] == 0)
+ 			continue;
++		/*
++		 * Set the MVP bits.
++		 */
++		settc(tc);
++		write_vpe_c0_vpeconf0(read_vpe_c0_vpeconf0() | VPECONF0_MVP);
++
+ 		if (vpe != 0)
+ 			printk(", ");
+ 		printk("VPE %d: TC", vpe);
+@@ -501,10 +511,18 @@
+ 			 * Clear ERL/EXL of VPEs other than 0
+ 			 * and set restricted interrupt enable/mask.
+ 			 */
++		#ifdef CONFIG_MIPS_TC3262
++			write_vpe_c0_status((read_vpe_c0_status()
++				& ~(ST0_BEV | ST0_ERL | ST0_EXL | ST0_IM))
++				| (STATUSF_IP0 | STATUSF_IP1 | STATUSF_IP2 | STATUSF_IP3 
++				| STATUSF_IP4 | STATUSF_IP5 | STATUSF_IP6 | STATUSF_IP7 
++				| ST0_IE));
++		#else
+ 			write_vpe_c0_status((read_vpe_c0_status()
+ 				& ~(ST0_BEV | ST0_ERL | ST0_EXL | ST0_IM))
+ 				| (STATUSF_IP0 | STATUSF_IP1 | STATUSF_IP7
+ 				| ST0_IE));
++		#endif
+ 			/*
+ 			 * set config to be the same as vpe0,
+ 			 *  particularly kseg0 coherency alg
+@@ -827,7 +846,21 @@
+ 		settc(cpu_data[cpu].tc_id);
+ 		write_vpe_c0_cause(read_vpe_c0_cause() | C_SW1);
+ 		UNLOCK_CORE_PRA();
+-	} else {
++	} else {	
++		if (type == IRQ_AFFINITY_IPI) {
++			/* Set up a descriptor, to be delivered either promptly or queued */
++			pipi2 = smtc_ipi_dq(&freeIPIq);
++			if (pipi2 == NULL) {
++				bust_spinlocks(1);
++				mips_mt_regdump(dvpe());
++				panic("IPI Msg. Buffers Depleted\n");
++			}
++			pipi2->type = type;
++			pipi2->arg = (void *)action;
++			pipi2->dest = cpu;
++			smtc_ipi_nq(&IPIQ[cpu], pipi2);
++		}
++
+ 		/*
+ 		 * Not sufficient to do a LOCK_MT_PRA (dmt) here,
+ 		 * since ASID shootdown on the other VPE may
+@@ -852,16 +885,18 @@
+ 			 * loop, we need to force exit from the wait and
+ 			 * do a direct post of the IPI.
+ 			 */
+-			if (cpu_wait == r4k_wait_irqoff) {
++			//if (cpu_wait == r4k_wait_irqoff) {/* marked for "When set IRQ to bind to specific CPU, the interrupt latency is long" ---xflu @20120823*/
+ 				tcrestart = read_tc_c0_tcrestart();
+ 				if (tcrestart >= (unsigned long)r4k_wait_irqoff
+ 				    && tcrestart < (unsigned long)__pastwait) {
+ 					write_tc_c0_tcrestart(__pastwait);
+ 					tcstatus &= ~TCSTATUS_IXMT;
+ 					write_tc_c0_tcstatus(tcstatus);
++					ehb();//add for sync register R/W, ensure write success bufore read---xflu@20120823
+ 					goto postdirect;
+ 				}
+-			}
++		//	}//xflu 
++
+ 			/*
+ 			 * Otherwise we queue the message for the target TC
+ 			 * to pick up when he does a local_irq_restore()
+@@ -945,7 +980,11 @@
+ {
+ 	unsigned int cpu = smp_processor_id();
+ 	struct clock_event_device *cd;
++#ifdef CONFIG_MIPS_TC3262
++	int irq = SI_TIMER_INT;
++#else
+ 	int irq = MIPS_CPU_IRQ_BASE + 1;
++#endif
+ 
+ 	irq_enter();
+ 	kstat_incr_irqs_this_cpu(irq, irq_to_desc(irq));
+@@ -1049,7 +1088,11 @@
+  * interrupts.
+  */
+ 
++#ifdef CONFIG_MIPS_TC3262
++static int cpu_ipi_irq = SI_SWINT_INT1;
++#else
+ static int cpu_ipi_irq = MIPS_CPU_IRQ_BASE + MIPS_CPU_IPI_IRQ;
++#endif
+ 
+ static irqreturn_t ipi_interrupt(int irq, void *dev_idm)
+ {
+@@ -1135,6 +1178,8 @@
+ 	.name		= "SMTC_IPI"
+ };
+ 
++extern void tc3162_enable_irq(unsigned int irq);
++
+ static void setup_cross_vpe_interrupts(unsigned int nvpe)
+ {
+ 	if (nvpe < 1)
+@@ -1143,7 +1188,13 @@
+ 	if (!cpu_has_vint)
+ 		panic("SMTC Kernel requires Vectored Interrupt support");
+ 
++#ifdef CONFIG_MIPS_TC3262
++	set_vi_handler(SI_SWINT_INT1, ipi_irq_dispatch);
++
++	tc3162_enable_irq(SI_SWINT1_INT1);
++#else
+ 	set_vi_handler(MIPS_CPU_IPI_IRQ, ipi_irq_dispatch);
++#endif
+ 
+ 	setup_irq_smtc(cpu_ipi_irq, &irq_ipi, (0x100 << MIPS_CPU_IPI_IRQ));
+ 
+@@ -1276,6 +1327,21 @@
+ 			}
+ 		}
+ 	}
++	/*
++	 * Now that we limit outstanding timer IPIs, check for hung TC
++	 */
++	for (tc = 0; tc < NR_CPUS; tc++) {
++		/* Don't check ourself - we'll dequeue IPIs just below */
++		if ((tc != smp_processor_id()) &&
++		    ipi_timer_latch[tc] > timerq_limit) {
++		    if (clock_hang_reported[tc] == 0) {
++			pdb_msg += sprintf(pdb_msg,
++				"TC %d looks hung with timer latch at %d\n",
++				tc, ipi_timer_latch[tc]);
++			clock_hang_reported[tc]++;
++			}
++		}
++	}
+ 
+ 	emt(mtflags);
+ 	local_irq_restore(flags);
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/spram.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/spram.c
+--- linux-2.6.36/arch/mips/kernel/spram.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/spram.c	2019-03-07 03:40:15.000000000 +0200
+@@ -12,12 +12,84 @@
+ #include <linux/kernel.h>
+ #include <linux/ptrace.h>
+ #include <linux/stddef.h>
++#include <linux/module.h>
+ 
++#include <asm/cpu.h>
+ #include <asm/fpu.h>
+ #include <asm/mipsregs.h>
+ #include <asm/system.h>
+ #include <asm/r4kcache.h>
+ #include <asm/hazards.h>
++#ifdef CONFIG_MIPS_TC3262
++#include <asm/tc3162/tc3162.h>
++
++extern int __imem, __dmem;
++#endif
++static char *sram_allocp = NULL;
++static int sram_size = 0;
++static int sram_free = 0;
++
++static char *dspram_p = NULL;
++static int dspram_used_size = 0;
++static int dspram_max_size = 0x1000;	//4K
++int is_sram_addr(void *p)
++{
++	if ((CKSEG1ADDR(p) & 0xffffc000) == (CKSEG1ADDR(DSPRAM_BASE) & 0xffffc000))
++		return 1;
++	else 
++		return 0;
++}
++EXPORT_SYMBOL(is_sram_addr);
++
++void *alloc_sram(int n)
++{
++	if (sram_allocp == NULL)
++		return NULL;
++
++	if (sram_free >= n) {
++		sram_free -= n;
++		sram_allocp += n;
++		printk("alloc_sram p=%p free=%04x\n", sram_allocp, sram_free);
++		return sram_allocp - n;
++	} else 
++		return NULL;
++}
++EXPORT_SYMBOL(alloc_sram);
++
++void free_sram(void *p, int n)
++{
++	if (sram_allocp == (p+n)) {
++		sram_free += n;
++		sram_allocp -= n;
++	}
++	printk("free_sram p=%p free=%04x\n", sram_allocp, sram_free);
++}
++EXPORT_SYMBOL(free_sram);
++
++void write_to_dspram(long  data)
++{
++	if(dspram_p == NULL || dspram_max_size == 0)
++		return;
++
++	
++	*(long *)dspram_p = data;
++	dspram_p += sizeof(long);
++
++	dspram_used_size += sizeof(long);
++
++	if(dspram_used_size >= dspram_max_size){
++		dspram_p = (char *)(DSPRAM_BASE);
++		dspram_used_size = 0;
++	}
++}
++
++unsigned int dspram_base_addr()
++{
++	return DSPRAM_BASE;
++}
++
++
++#define MIPS34K_Index_Store_Data_I	0x0c
+ 
+ /*
+  * These definitions are correct for the 24K/34K/74K SPRAM sample
+@@ -38,7 +110,7 @@
+ /*
+  * Different semantics to the set_c0_* function built by __BUILD_SET_C0
+  */
+-static __cpuinit unsigned int bis_c0_errctl(unsigned int set)
++static unsigned int bis_c0_errctl(unsigned int set)
+ {
+ 	unsigned int res;
+ 	res = read_c0_errctl();
+@@ -46,7 +118,36 @@
+ 	return res;
+ }
+ 
+-static __cpuinit void ispram_store_tag(unsigned int offset, unsigned int data)
++static void ispram_store_data(unsigned int offset, unsigned int datalo, unsigned int datahi)
++{
++	unsigned int errctl;
++
++	/* enable SPRAM tag access */
++	errctl = bis_c0_errctl(ERRCTL_SPRAM);
++	ehb();
++
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	write_c0_idatalo(datahi);
++	ehb();
++
++	write_c0_idatahi(datalo);
++	ehb();
++#else
++	write_c0_idatalo(datalo);
++	ehb();
++
++	write_c0_idatahi(datahi);
++	ehb();
++#endif
++
++	cache_op(MIPS34K_Index_Store_Data_I, CKSEG0|offset);
++	ehb();
++
++	write_c0_errctl(errctl);
++	ehb();
++}
++
++static void ispram_store_tag(unsigned int offset, unsigned int data)
+ {
+ 	unsigned int errctl;
+ 
+@@ -65,7 +166,7 @@
+ }
+ 
+ 
+-static __cpuinit unsigned int ispram_load_tag(unsigned int offset)
++static unsigned int ispram_load_tag(unsigned int offset)
+ {
+ 	unsigned int data;
+ 	unsigned int errctl;
+@@ -176,6 +277,7 @@
+ 		if (strcmp(type, "DSPRAM") == 0) {
+ 			unsigned int *vp = (unsigned int *)(CKSEG1 | pa);
+ 			unsigned int v;
++			if(!isMT751020 && !isMT7505 && !isEN751221){
+ #define TDAT	0x5a5aa5a5
+ 			vp[0] = TDAT;
+ 			vp[1] = ~TDAT;
+@@ -190,6 +292,18 @@
+ 			if (v != ~TDAT)
+ 				printk(KERN_ERR "vp=%p wrote=%08x got=%08x\n",
+ 				       vp+1, ~TDAT, v);
++			}
++#ifdef CONFIG_MIPS_TC3262
++			if (enabled) {
++				if(isMT751020 || isMT7505 || isEN751221){
++					dspram_max_size = size;
++				}
++				else{
++				sram_allocp = (char *) vp;
++				sram_size = sram_free = size;
++				}
++			}
++#endif
+ 		}
+ 
+ 		pr_info("%s%d: PA=%08x,Size=%08x%s\n",
+@@ -197,6 +311,36 @@
+ 		offset += 2 * SPRAM_TAG_STRIDE;
+ 	}
+ }
++
++void ispram_fill(void)
++{
++	unsigned int pa, size, tag0, tag1;
++	unsigned int offset;
++	unsigned int datalo, datahi;
++
++	tag0 = ispram_load_tag(0);
++	tag1 = ispram_load_tag(0+SPRAM_TAG_STRIDE);
++
++	pa = tag0 & SPRAM_TAG0_PA_MASK;
++	size = tag1 & SPRAM_TAG1_SIZE_MASK;
++
++	if (size == 0)
++		return;
++
++	for (offset = 0; offset < size; offset += 8) {
++		datalo = *(unsigned int *) (PHYS_TO_K0(pa + offset));
++		datahi = *(unsigned int *) (PHYS_TO_K0(pa + offset + 4));
++		ispram_store_data(offset, datalo, datahi);
++	}
++}
++
++void ispram_refill(void)
++{
++	//probe_spram("ISPRAM", CPHYSADDR(&__imem),
++	//		&ispram_load_tag, &ispram_store_tag);
++	ispram_fill();
++}
++
+ void __cpuinit spram_config(void)
+ {
+ 	struct cpuinfo_mips *c = &current_cpu_data;
+@@ -209,6 +353,41 @@
+ 	case CPU_1004K:
+ 		config0 = read_c0_config();
+ 		/* FIXME: addresses are Malta specific */
++#ifdef CONFIG_MIPS_TC3262
++#ifdef CONFIG_TC3162_IMEM
++		if (config0 & (1<<24)) {
++			probe_spram("ISPRAM", CPHYSADDR(&__imem),
++				    &ispram_load_tag, &ispram_store_tag);
++			ispram_fill();
++			if (!isRT63165 && !isRT63365 && !isMT751020 && !isMT7505 && !isEN751221)
++				VPint(CR_DMC_ISPCFGR) = (CPHYSADDR(&__imem) & 0xfffff000) | (1<<8) | (0x7);
++		}
++#endif
++#ifdef CONFIG_TC3162_DMEM
++		if (isRT63165 || isRT63365) {
++			VPint(CR_SRAM) = (CPHYSADDR(DSPRAM_BASE) & 0xffffc000) | (1<<0);
++			printk("Enable SRAM=%08lx\n", VPint(CR_SRAM));
++
++			sram_allocp = (char *) CKSEG1ADDR(DSPRAM_BASE);
++			sram_size = sram_free = 0x8000;
++		} else {
++			if (!isTC3182 && !isRT65168) {
++				if (config0 & (1<<23)) {
++					if(isMT751020){
++						probe_spram("DSPRAM", CPHYSADDR(DSPRAM_BASE),
++							&dspram_load_tag, &dspram_store_tag);
++						dspram_p = (char *)(DSPRAM_BASE);
++					}
++					else{
++						probe_spram("DSPRAM", CPHYSADDR(DSPRAM_BASE),
++							&dspram_load_tag, &dspram_store_tag);
++						VPint(CR_DMC_DSPCFGR) = (CPHYSADDR(DSPRAM_BASE) & 0xfffff000) | (1<<8) | (0x7);
++					}
++				}
++			}
++		}
++#endif
++#else
+ 		if (config0 & (1<<24)) {
+ 			probe_spram("ISPRAM", 0x1c000000,
+ 				    &ispram_load_tag, &ispram_store_tag);
+@@ -216,5 +395,6 @@
+ 		if (config0 & (1<<23))
+ 			probe_spram("DSPRAM", 0x1c100000,
+ 				    &dspram_load_tag, &dspram_store_tag);
++#endif
+ 	}
+ }
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/time.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/time.c
+--- linux-2.6.36/arch/mips/kernel/time.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/time.c	2019-03-07 03:40:15.000000000 +0200
+@@ -27,7 +27,7 @@
+ #include <asm/div64.h>
+ #include <asm/smtc_ipi.h>
+ #include <asm/time.h>
+-
++#include <linux/profile.h>
+ /*
+  * forward reference
+  */
+@@ -116,9 +116,78 @@
+ 
+ 	return 0;
+ }
++#if 0 //def CONFIG_MIPS_TC3262
++int reset_time_value(int time_shift){
++	u64 temp;
++	u32 shift;
++	int i;
++	unsigned int cpu;
++	
++#ifdef DBG
++	printk("cycles_per_jiffy %x\n",cycles_per_jiffy);
++	printk("true mips_hpt_frequency  %x shift %d\n",mips_hpt_frequency_true,time_shift);
++#endif	
++	if(loops_per_jiffy_true == 0){
++		//save correct value
++		if(loops_per_jiffy == (1<<12)){
++			printk("init not over\n");	
++			return -1;
++		}else{
++			loops_per_jiffy_true = loops_per_jiffy;
++			for(i=0;i<NR_CPUS;i++){
++				udelay_val_true[i] = cpu_data[i].udelay_val;
++			}
++		}
++	} 
++#ifdef DBG	
++	printk("true loops_per_jiffie  %x loops_per_jiffie %x\n", loops_per_jiffy_true, loops_per_jiffy);
++#endif
++	local_irq_disable();
++	mips_hpt_frequency = (mips_hpt_frequency_true>>(time_shift));
++#ifdef DBG	
++	printk("After mips_hpt_frequency %x \n",mips_hpt_frequency);
++#endif
++	/* Calculate cache parameters.  */
++	cycles_per_jiffy = (mips_hpt_frequency + HZ / 2) / HZ;
++#ifdef DBG	
++	printk("cycles_per_jiffy %x\n",cycles_per_jiffy);
++#endif	
++	/* Calclate a somewhat reasonable rating value */
++	clocksource_mips.rating = 200 + mips_hpt_frequency / 10000000;	
++	/* Find a shift value */
++	for (shift = 32; shift > 0; shift--) {
++		temp = (u64) NSEC_PER_SEC << shift;
++		do_div(temp, mips_hpt_frequency);
++		if ((temp >> 32) == 0)
++			break;
++	}
++	clocksource_mips.shift = shift;
++	clocksource_mips.mult = (u32)temp;
++	//about date
++	clocksource_calculate_interval(&clocksource_mips, NTP_INTERVAL_LENGTH);
++	clocksource_change_rating(&clocksource_mips, clocksource_mips.rating);
++#ifdef DBG	
++	printk("clocksource_mips.rate %x shift %x mult %x cycle_interval %x\n",clocksource_mips.rating,clocksource_mips.shift,clocksource_mips.mult,clocksource_mips.cycle_interval);
++#endif
++	//about delay
++	for(i=0;i<NR_CPUS;i++){
++		cpu_data[i].udelay_val = (udelay_val_true[i] >> (time_shift));
++	}
++	loops_per_jiffy = loops_per_jiffy_true >> (time_shift) ;
++
++	local_irq_enable();
++
++	return 0;
++}
++EXPORT_SYMBOL(reset_time_value);
++#endif
+ 
++void (*board_time_init)(void);
+ void __init time_init(void)
+ {
++	if(board_time_init)
++		board_time_init();
++
+ 	plat_time_init();
+ 
+ 	if (!mips_clockevent_init() || !cpu_has_mfc0_count_bug())
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/traps.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/traps.c
+--- linux-2.6.36/arch/mips/kernel/traps.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/traps.c	2019-03-07 03:40:15.000000000 +0200
+@@ -53,6 +53,9 @@
+ #include <asm/stacktrace.h>
+ #include <asm/irq.h>
+ #include <asm/uasm.h>
++#ifdef TCSUPPORT_XPON_HAL_API_EXT
++#include <linux/kallsyms.h>
++#endif
+ 
+ extern void check_wait(void);
+ extern asmlinkage void r4k_wait(void);
+@@ -113,6 +116,76 @@
+ 	printk("\n");
+ }
+ 
++#define NMI_STACK_LEN	80
++#define NMI_STACK_MAGIC_NUM	0x5abc2312
++
++
++void show_raw_backtrace_nmi(unsigned long sp_start, unsigned long stack_len)
++{
++	unsigned long *sp = (unsigned long *)(sp_start & ~3);
++	unsigned long addr, i = 0;
++
++	printk("Call Trace NMI:");
++#ifdef CONFIG_KALLSYMS
++	printk("\n");
++#endif
++	while (i < stack_len) {
++		unsigned long __user *p =
++			(unsigned long __user *)(unsigned long)sp++;
++		if (__get_user(addr, p)) {
++			printk(" (Bad stack address)");
++			break;
++		}
++		if (__kernel_text_address(addr))
++			print_ip_sym(addr);
++
++		i++;
++	}
++	printk("\n");
++}
++
++void show_stack_nmi()
++{
++	unsigned int dspram_addr = dspram_base_addr();
++	int i, dspram_data_len=NMI_STACK_LEN;
++	unsigned int *p = (unsigned int *)dspram_addr;
++
++	printk("dspram_addr=0x%x\n", dspram_addr);
++
++	if(*p != NMI_STACK_MAGIC_NUM){
++		printk("No NMI Happen!\n");
++		return;
++	}
++	
++	p++;
++	printk("epc   : %08lx %pS\n", *p,
++	       (void *) (*p));
++	p++;
++	printk("ra    : %08lx %pS\n",*p,
++	       (void *) (*p));
++
++	p++;
++	printk("Status: %08x    ", (uint32_t) (*p));
++	p++;
++	printk("Cause : %08x\n", (*p));
++
++	p++;
++
++	while(dspram_data_len){
++		if(dspram_data_len % 8 == 0)
++			printk("\n       ");
++		printk(" %08lx", *p);
++
++		p++;
++		dspram_data_len--;
++	}
++	printk("\n       ");
++
++	show_raw_backtrace_nmi(dspram_base_addr(),NMI_STACK_LEN);
++	
++	
++}
++
+ #ifdef CONFIG_KALLSYMS
+ int raw_show_trace;
+ static int __init set_raw_show_trace(char *str)
+@@ -175,6 +248,36 @@
+ 	show_backtrace(task, regs);
+ }
+ 
++static void show_stacktrace_nmi(struct task_struct *task,
++	const struct pt_regs *regs)
++{
++	const int field = 2 * sizeof(unsigned long);
++	long stackdata;
++	int i;
++	unsigned long __user *sp = (unsigned long __user *)regs->regs[29];
++
++	printk("Stack :");
++	i = 0;
++	while ((unsigned long) sp & (PAGE_SIZE - 1)) {
++		if (i && ((i % (64 / field)) == 0))
++			printk("\n       ");
++		if (i > NMI_STACK_LEN-1) {
++			printk(" ...");
++			break;
++		}
++
++		if (__get_user(stackdata, sp++)) {
++			printk(" (Bad stack address)");
++			break;
++		}
++
++		printk(" %0*lx", field, stackdata);
++		i++;
++	}
++	printk("\n");
++	//show_backtrace(task, regs);
++}
++
+ void show_stack(struct task_struct *task, unsigned long *sp)
+ {
+ 	struct pt_regs regs;
+@@ -327,6 +430,105 @@
+ 	       cpu_name_string());
+ }
+ 
++static void __show_regs_nmi(const struct pt_regs *regs)
++{
++	const int field = 2 * sizeof(unsigned long);
++	unsigned int cause = regs->cp0_cause;
++	int i;
++
++	printk("Cpu %d\n", smp_processor_id());
++
++	/*
++	 * Saved main processor registers
++	 */
++	for (i = 0; i < 32; ) {
++		if ((i % 4) == 0)
++			printk("$%2d   :", i);
++		if (i == 0)
++			printk(" %0*lx", field, 0UL);
++		else if (i == 26 || i == 27)
++			printk(" %*s", field, "");
++		else
++			printk(" %0*lx", field, regs->regs[i]);
++
++		i++;
++		if ((i % 4) == 0)
++			printk("\n");
++	}
++
++#ifdef CONFIG_CPU_HAS_SMARTMIPS
++	printk("Acx    : %0*lx\n", field, regs->acx);
++#endif
++	printk("Hi    : %0*lx\n", field, regs->hi);
++	printk("Lo    : %0*lx\n", field, regs->lo);
++
++	/*
++	 * Saved cp0 registers
++	 */
++	//printk("epc   : %0*lx %pS\n", field, regs->cp0_epc,
++	//       (void *) regs->cp0_epc);
++	printk("epc   : %0*lx\n", field, regs->cp0_epc);
++	printk("    %s\n", print_tainted());
++	//printk("ra    : %0*lx %pS\n", field, regs->regs[31],
++	//       (void *) regs->regs[31]);
++	printk("ra    : %0*lx\n", field, regs->regs[31]);
++
++	printk("Status: %08x    ", (uint32_t) regs->cp0_status);
++
++	if (current_cpu_data.isa_level == MIPS_CPU_ISA_I) {
++		if (regs->cp0_status & ST0_KUO)
++			printk("KUo ");
++		if (regs->cp0_status & ST0_IEO)
++			printk("IEo ");
++		if (regs->cp0_status & ST0_KUP)
++			printk("KUp ");
++		if (regs->cp0_status & ST0_IEP)
++			printk("IEp ");
++		if (regs->cp0_status & ST0_KUC)
++			printk("KUc ");
++		if (regs->cp0_status & ST0_IEC)
++			printk("IEc ");
++	} else {
++		if (regs->cp0_status & ST0_KX)
++			printk("KX ");
++		if (regs->cp0_status & ST0_SX)
++			printk("SX ");
++		if (regs->cp0_status & ST0_UX)
++			printk("UX ");
++		switch (regs->cp0_status & ST0_KSU) {
++		case KSU_USER:
++			printk("USER ");
++			break;
++		case KSU_SUPERVISOR:
++			printk("SUPERVISOR ");
++			break;
++		case KSU_KERNEL:
++			printk("KERNEL ");
++			break;
++		default:
++			printk("BAD_MODE ");
++			break;
++		}
++		if (regs->cp0_status & ST0_ERL)
++			printk("ERL ");
++		if (regs->cp0_status & ST0_EXL)
++			printk("EXL ");
++		if (regs->cp0_status & ST0_IE)
++			printk("IE ");
++	}
++	printk("\n");
++
++	printk("Cause : %08x\n", cause);
++
++	cause = (cause & CAUSEF_EXCCODE) >> CAUSEB_EXCCODE;
++	if (1 <= cause && cause <= 5)
++		printk("BadVA : %0*lx\n", field, regs->cp0_badvaddr);
++
++	printk("PrId  : %08x (%s)\n", read_c0_prid(),
++	       cpu_name_string());
++}
++
++
+ /*
+  * FIXME: really the generic show_regs should take a const pointer argument.
+  */
+@@ -357,6 +559,29 @@
+ 	printk("\n");
+ }
+ 
++void show_registers_nmi(struct pt_regs *regs)
++{
++	const int field = 2 * sizeof(unsigned long);
++
++	__show_regs_nmi(regs);
++	//print_modules();
++	printk("Process %s (pid: %d, threadinfo=%p, task=%p, tls=%0*lx)\n",
++	       current->comm, current->pid, current_thread_info(), current,
++	      field, current_thread_info()->tp_value);
++	if (cpu_has_userlocal) {
++		unsigned long tls;
++
++		tls = read_c0_userlocal();
++		if (tls != current_thread_info()->tp_value)
++			printk("*HwTLS: %0*lx\n", field, tls);
++	}
++
++	show_stacktrace_nmi(current, regs);
++	//show_code((unsigned int __user *) regs->cp0_epc);
++	printk("\n");
++}
++
++
+ static int regs_to_trapnr(struct pt_regs *regs)
+ {
+ 	return (regs->cp0_cause >> 2) & 0x1f;
+@@ -401,6 +626,84 @@
+ 	do_exit(sig);
+ }
+ 
++void nmi_info_store( struct pt_regs *regs)
++{
++	const int field = 2 * sizeof(unsigned long);
++	unsigned int cause = regs->cp0_cause;
++	long stackdata;
++	int i;
++	unsigned long __user *sp = (unsigned long __user *)regs->regs[29];
++	
++	/*Store Magic Number*/
++	write_to_dspram(NMI_STACK_MAGIC_NUM);
++
++	/*Store register value*/
++	write_to_dspram(regs->cp0_epc);
++	write_to_dspram(regs->regs[31]); //ra
++	write_to_dspram((uint32_t) regs->cp0_status);
++	write_to_dspram(cause);
++	
++	/*Store stack data*/
++	i = 0;
++	while ((unsigned long) sp & (PAGE_SIZE - 1)) {
++		if (i > NMI_STACK_LEN-1) {
++			break;
++		}
++
++		if (__get_user(stackdata, sp++)) {
++			//printk(" (Bad stack address)");
++			break;
++		}
++
++		//printk(" %0*lx", field, stackdata);
++		write_to_dspram(stackdata);
++		i++;
++	}
++}
++
++void __noreturn die_nmi(const char *str, struct pt_regs *regs)
++{
++	static int die_counter;
++	int sig = SIGSEGV;
++#ifdef CONFIG_MIPS_MT_SMTC
++	unsigned long dvpret = dvpe();
++#endif /* CONFIG_MIPS_MT_SMTC */
++
++	notify_die(DIE_OOPS, str, regs, 0, regs_to_trapnr(regs), SIGSEGV);
++
++	console_verbose();
++	spin_lock_irq(&die_lock);
++	bust_spinlocks(1);
++#ifdef CONFIG_MIPS_MT_SMTC
++	mips_mt_regdump_nmi(dvpret);
++#endif /* CONFIG_MIPS_MT_SMTC */
++	
++
++	if (notify_die(DIE_OOPS, str, regs, 0, regs_to_trapnr(regs), SIGSEGV) == NOTIFY_STOP)
++		sig = 0;
++
++	printk("%s[#%d]:\n", str, ++die_counter);
++	show_registers_nmi(regs);
++
++	while(1); //waiting for watchdog reboot
++	#if 0
++	add_taint(TAINT_DIE);
++	spin_unlock_irq(&die_lock);
++
++	if (in_interrupt())
++		panic("Fatal exception in interrupt");
++
++	if (panic_on_oops) {
++		printk(KERN_EMERG "Fatal exception: panic in 5 seconds\n");
++		ssleep(5);
++		panic("Fatal exception");
++	}
++
++	do_exit(sig);
++	#endif
++}
++
++
+ extern struct exception_table_entry __start___dbe_table[];
+ extern struct exception_table_entry __stop___dbe_table[];
+ 
+@@ -1013,6 +1316,152 @@
+ /*
+  * Called with interrupts disabled.
+  */
++int watchFlag=0;
++EXPORT_SYMBOL(watchFlag);
++#ifdef TCSUPPORT_XPON_HAL_API_EXT
++volatile int watchOccured = 0;
++volatile int watchLo2Val = 0;
++u32 kmem_cache_alloc_addr = 0;
++u32 kmem_cache_free_addr = 0;
++u32 __slab_alloc_addr = 0;
++u32 __slab_alloc_addr2 = 0;
++u32 deactivate_slab_addr = 0;
++u32 kfree_addr = 0;
++
++void resetWatch(void)
++{
++	if(watchOccured)
++	{
++		u32 val_Hi;
++		u32 val_Lo;
++		u32 *ptr;
++
++		val_Hi = read_c0_watchhi2();
++
++		val_Hi = 0x4000000b;
++		write_c0_watchhi2(val_Hi);
++		write_c0_watchlo2(watchLo2Val);
++		//printk("Reset WATCH exception: write val_Lo %08x val_Hi %08x\r\n", val_Lo, val_Hi);
++
++
++		val_Hi = read_c0_watchhi2();
++		val_Lo = read_c0_watchlo2();
++			
++		//printk("Caught WATCH exception: reread val_Lo %08x val_Hi %08x\r\n", val_Lo, val_Hi);
++		ptr = watchLo2Val & 0xFFFFFFF8;
++		
++		watchOccured = 0;
++		//prom_printf("resetWatch: Caught WATCH exception: resetWatch val_Lo %08x val_Hi %08x ptr %08x, val is %08x\\r\n", 
++		//			val_Lo, val_Hi, ptr, *ptr);
++
++	}
++}
++EXPORT_SYMBOL(resetWatch);
++
++void resetWatchAlways(void)
++{
++	if(watchFlag) {
++	u32 val_Lo;
++	val_Lo = read_c0_watchlo2();
++	if(watchLo2Val && ((val_Lo & 0x7) == 0))
++	{
++		prom_printf("Reset Watch: watchLo2Val %08x\r\n", watchLo2Val);
++		write_c0_watchhi2(0x4000000b);
++		write_c0_watchlo2(watchLo2Val);
++	}
++	}
++}
++
++
++void checkWatch(struct pt_regs *regs)
++{
++	u32 val_Hi;
++	u32 val_Lo;
++	u32 *ptr;
++	u32 findsymbol = 0;
++
++	//val_Hi = read_c0_watchhi2();
++	val_Lo = read_c0_watchlo2();
++
++	watchLo2Val = val_Lo;
++	//ptr = val_Lo & 0xFFFFFFF8;
++
++	//printk("\r\nCaught WATCH exception: val_Lo %08x val_Hi %08x ptr %08x, val is %08x\r\n", val_Lo, val_Hi, ptr, *ptr);
++	if((kmem_cache_alloc_addr != 0) && (regs->cp0_epc == kmem_cache_alloc_addr))
++	{
++		findsymbol = 1;
++	}
++
++	if((kmem_cache_free_addr != 0) && (regs->cp0_epc == kmem_cache_free_addr))
++	{
++		findsymbol = 1;
++	}
++
++	if((__slab_alloc_addr != 0) && (regs->cp0_epc == __slab_alloc_addr))
++	{
++		findsymbol = 1;
++	}
++
++	if((__slab_alloc_addr2 != 0) && (regs->cp0_epc == __slab_alloc_addr2))
++	{
++		findsymbol = 1;
++	}
++	
++	if((deactivate_slab_addr != 0) && (regs->cp0_epc == deactivate_slab_addr))
++	{
++		findsymbol = 1;
++	}
++
++	if((kfree_addr != 0) && (regs->cp0_epc == kfree_addr))
++	{
++		findsymbol = 1;
++	}
++
++	if(findsymbol == 0)
++	{
++		char buffer[KSYM_SYMBOL_LEN] = {0};
++		memset(buffer, 0, KSYM_SYMBOL_LEN);
++		sprint_symbol(buffer, regs->cp0_epc);
++		printk("epc %08x, func %s\r\n", regs->cp0_epc, buffer);
++		if((kmem_cache_alloc_addr == 0) && strstr(buffer, "kmem_cache_alloc+"))
++		{
++			kmem_cache_alloc_addr = regs->cp0_epc;
++			printk("kmem_cache_alloc_addr is %08x\r\n", kmem_cache_alloc_addr);
++		}
++		else if((kmem_cache_free_addr == 0) && strstr(buffer, "kmem_cache_free+"))
++		{
++			kmem_cache_free_addr = regs->cp0_epc;
++			printk("kmem_cache_free_addr is %08x\r\n", kmem_cache_free_addr);
++		}
++		else if((__slab_alloc_addr == 0) && strstr(buffer, "__slab_alloc+"))
++		{
++			__slab_alloc_addr = regs->cp0_epc;
++			printk("__slab_alloc_addr is %08x\r\n", __slab_alloc_addr);
++		}
++		else if((__slab_alloc_addr2 == 0) && strstr(buffer, "__slab_alloc+"))
++		{
++			__slab_alloc_addr2 = regs->cp0_epc;
++			printk("__slab_alloc_addr2 is %08x\r\n", __slab_alloc_addr2);
++		}
++		else if((deactivate_slab_addr == 0) && strstr(buffer, "deactivate_slab+"))
++		{
++			deactivate_slab_addr = regs->cp0_epc;
++			printk("deactivate_slab_addr is %08x\r\n", deactivate_slab_addr);
++		}
++		else if((kfree_addr == 0) && strstr(buffer, "kfree+"))
++		{
++			kfree_addr = regs->cp0_epc;
++			printk("kfree_addr is %08x\r\n", kfree_addr);
++		}
++		else
++		{
++			show_registers(regs);
++		}
++
++	}
++
++}
++#endif
+ asmlinkage void do_watch(struct pt_regs *regs)
+ {
+ 	u32 cause;
+@@ -1021,10 +1470,25 @@
+ 	 * Clear WP (bit 22) bit of cause register so we don't loop
+ 	 * forever.
+ 	 */
++	 #ifdef TCSUPPORT_XPON_HAL_API_EXT
++	 if(0){
++	 #else
++	 if(watchFlag){
++	 #endif
++	 dump_tlb_all();
++	 show_registers(regs);	 	 
++	 //show_regs(regs);
++	//compute_return_epc(regs);
++	panic("Caught WATCH exception - probably caused by stack overflow\n");
++		return;
++	}
++	else{
+ 	cause = read_c0_cause();
+ 	cause &= ~(1 << 22);
+ 	write_c0_cause(cause);
+-
++	#ifdef TCSUPPORT_XPON_HAL_API_EXT
++		checkWatch(regs);
++	#endif
+ 	/*
+ 	 * If the current thread has the watch registers loaded, save
+ 	 * their values and send SIGTRAP.  Otherwise another thread
+@@ -1038,6 +1502,10 @@
+ 		mips_clear_watch_registers();
+ 		local_irq_enable();
+ 	}
++	#ifdef TCSUPPORT_XPON_HAL_API_EXT
++		watchOccured = 1;
++	#endif
++	}
+ }
+ 
+ asmlinkage void do_mcheck(struct pt_regs *regs)
+@@ -1300,8 +1768,10 @@
+ NORET_TYPE void ATTRIB_NORET nmi_exception_handler(struct pt_regs *regs)
+ {
+ 	bust_spinlocks(1);
++	nmi_info_store(regs);
+ 	printk("NMI taken!!!!\n");
+-	die("NMI", regs);
++	//die("NMI", regs);
++	die_nmi("NMI", regs);
+ }
+ 
+ #define VECTORSPACING 0x100	/* for EI/VI mode */
+@@ -1404,10 +1874,15 @@
+ 
+ 		memcpy(b, vec_start, handler_len);
+ #ifdef CONFIG_MIPS_MT_SMTC
++		if (!cpu_has_veic) 
+ 		BUG_ON(n > 7);	/* Vector index %d exceeds SMTC maximum. */
+ 
+ 		w = (u32 *)(b + mori_offset);
++#ifdef CONFIG_MIPS_TC3262
++		*w = (*w & 0xffff0000) | (n);
++#else
+ 		*w = (*w & 0xffff0000) | (0x100 << n);
++#endif
+ #endif /* CONFIG_MIPS_MT_SMTC */
+ 		w = (u32 *)(b + lui_offset);
+ 		*w = (*w & 0xffff0000) | (((u32)handler >> 16) & 0xffff);
+@@ -1437,6 +1912,7 @@
+ {
+ 	return set_vi_srs_handler(n, addr, 0);
+ }
++EXPORT_SYMBOL(set_vi_handler);
+ 
+ extern void cpu_cache_init(void);
+ extern void tlb_init(void);
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/vmlinux.lds.S tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/vmlinux.lds.S
+--- linux-2.6.36/arch/mips/kernel/vmlinux.lds.S	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/vmlinux.lds.S	2019-03-07 03:40:15.000000000 +0200
+@@ -4,6 +4,10 @@
+ 
+ #undef mips
+ #define mips mips
++#if defined(TCSUPPORT_CPU_EN7512) || defined(TCSUPPORT_CPU_EN7521)
++#undef CONFIG_IMEM_SIZE
++#define CONFIG_IMEM_SIZE 65536
++#endif
+ OUTPUT_ARCH(mips)
+ ENTRY(kernel_entry)
+ PHDRS {
+@@ -51,7 +55,21 @@
+ 		*(.fixup)
+ 		*(.gnu.warning)
+ 	} :text = 0
++
++#ifdef CONFIG_TC3162_IMEM
++#ifdef CONFIG_CPU_TC3162
++  	. = ALIGN(16384);
++#else
++  	. = ALIGN(32768);
++#endif
++  	__imem = . ;
++  	.imem_text : { *(.imem_text) }
++  	_imem_end = .;
++  	_etext = (__imem + CONFIG_IMEM_SIZE) > . ? (__imem + CONFIG_IMEM_SIZE) : .;
++  	. = _etext;
++#else
+ 	_etext = .;	/* End of text section */
++#endif  
+ 
+ 	EXCEPTION_TABLE(16)
+ 
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/kernel/vpe.c tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/vpe.c
+--- linux-2.6.36/arch/mips/kernel/vpe.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/vpe.c	2019-03-07 03:40:15.000000000 +0200
+@@ -148,9 +148,9 @@
+ 	spinlock_t tc_list_lock;
+ 	struct list_head tc_list;	/* Thread contexts */
+ } vpecontrol = {
+-	.vpe_list_lock	= SPIN_LOCK_UNLOCKED,
++	.vpe_list_lock	= __SPIN_LOCK_UNLOCKED(vpecontrol.vpe_list_lock),
+ 	.vpe_list	= LIST_HEAD_INIT(vpecontrol.vpe_list),
+-	.tc_list_lock	= SPIN_LOCK_UNLOCKED,
++	.tc_list_lock	= __SPIN_LOCK_UNLOCKED(vpecontrol.tc_list_lock),
+ 	.tc_list	= LIST_HEAD_INIT(vpecontrol.tc_list)
+ };
+ 
+@@ -192,7 +192,7 @@
+ 	}
+ 	spin_unlock(&vpecontrol.tc_list_lock);
+ 
+-	return NULL;
++	return res;//modify by xfu seams like a bug
+ }
+ 
+ /* allocate a vpe and associate it with this minor (or index) */
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/mm/cache.c tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/cache.c
+--- linux-2.6.36/arch/mips/mm/cache.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/cache.c	2019-03-07 03:40:15.000000000 +0200
+@@ -51,6 +51,7 @@
+ void (*_dma_cache_wback)(unsigned long start, unsigned long size);
+ void (*_dma_cache_inv)(unsigned long start, unsigned long size);
+ 
++EXPORT_SYMBOL(_dma_cache_inv);
+ EXPORT_SYMBOL(_dma_cache_wback_inv);
+ 
+ #endif /* CONFIG_DMA_NONCOHERENT */
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/mm/c-r4k.c tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/c-r4k.c
+--- linux-2.6.36/arch/mips/mm/c-r4k.c	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/c-r4k.c	2019-03-07 03:40:15.000000000 +0200
+@@ -595,7 +595,7 @@
+ 
+ #ifdef CONFIG_DMA_NONCOHERENT
+ 
+-static void r4k_dma_cache_wback_inv(unsigned long addr, unsigned long size)
++__IMEM static void r4k_dma_cache_wback_inv(unsigned long addr, unsigned long size)
+ {
+ 	/* Catch bad driver code */
+ 	BUG_ON(size == 0);
+@@ -623,7 +623,7 @@
+ 	bc_wback_inv(addr, size);
+ }
+ 
+-static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
++__IMEM static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
+ {
+ 	/* Catch bad driver code */
+ 	BUG_ON(size == 0);
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/mm: c-tc3162.c
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/mm/Makefile tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/Makefile
+--- linux-2.6.36/arch/mips/mm/Makefile	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/Makefile	2019-03-07 03:40:15.000000000 +0200
+@@ -16,6 +16,7 @@
+ obj-$(CONFIG_CPU_NEVADA)	+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R10000)	+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R3000)		+= c-r3k.o tlb-r3k.o
++obj-$(CONFIG_CPU_TC3162)	+= c-tc3162.o tlb-r3k.o pg-r4k.o
+ obj-$(CONFIG_CPU_R4300)		+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R4X00)		+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R5000)		+= c-r4k.o cex-gen.o tlb-r4k.o
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: fixup-tc3162.c
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: fixup-tc3162u.c
+diff -ur -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*usb*' -x .gitignore linux-2.6.36/arch/mips/pci/Makefile tplink-vr300/mtk/linux-2.6.36/arch/mips/pci/Makefile
+--- linux-2.6.36/arch/mips/pci/Makefile	2010-10-20 23:30:22.000000000 +0300
++++ tplink-vr300/mtk/linux-2.6.36/arch/mips/pci/Makefile	2019-03-07 03:40:15.000000000 +0200
+@@ -19,6 +19,18 @@
+ obj-$(CONFIG_BCM63XX)		+= pci-bcm63xx.o fixup-bcm63xx.o \
+ 					ops-bcm63xx.o
+ 
++obj-$(CONFIG_MIPS_TC3162)	+= ops-tc3162.o pci-tc3162.o fixup-tc3162.o
++ifdef CONFIG_MIPS_TC3262 
++EXTRA_CFLAGS += -DPCIE_PCI_COEXIT
++endif
++obj-$(CONFIG_MIPS_TC3262)	+= ops-tc3162u.o pci-tc3162u.o fixup-tc3162u.o pcie-phy.o
++obj-$(CONFIG_MIPS_TC3262)       += ops-tc3162.o pci-tc3162.o fixup-tc3162.o pci-7512api.o
++ifdef CONFIG_MIPS_TC3162U
++EXTRA_CFLAGS += -DPCIE_PCI_COEXIT
++endif
++obj-$(CONFIG_MIPS_TC3162U)	+= ops-tc3162u.o pci-tc3162u.o fixup-tc3162u.o pcie-phy.o
++obj-$(CONFIG_MIPS_TC3162U)	+= ops-tc3162.o pci-tc3162.o fixup-tc3162.o
++
+ #
+ # These are still pretty much in the old state, watch, go blind.
+ #
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: ops-tc3162.c
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: ops-tc3162u.c
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pci-7512api.c
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pcie-phy.c
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pci-tc3162.c
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pci-tc3162u.c
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips: ralink
+Only in tplink-vr300/mtk/linux-2.6.36/arch/mips: softfloat

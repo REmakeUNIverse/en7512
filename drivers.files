@@ -1,0 +1,41 @@
+Files linux-2.6.36/drivers/char/random.c and tplink-vr300/mtk/linux-2.6.36/drivers/char/random.c differ
+Files linux-2.6.36/drivers/input/input.c and tplink-vr300/mtk/linux-2.6.36/drivers/input/input.c differ
+Files linux-2.6.36/drivers/mtd/chips/Kconfig and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips/Kconfig differ
+Files linux-2.6.36/drivers/mtd/chips/Makefile and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips/Makefile differ
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: newspiflash.c
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: newspiflash.h
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: spi_controller.c
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: spi_controller.h
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: spiflash_tc3162.c
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: spiflash_tc3162.h
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: spi_nand_flash.c
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/chips: spi_nand_flash.h
+Files linux-2.6.36/drivers/mtd/Kconfig and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/Kconfig differ
+Files linux-2.6.36/drivers/mtd/Makefile and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/Makefile differ
+Files linux-2.6.36/drivers/mtd/maps/Kconfig and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/maps/Kconfig differ
+Files linux-2.6.36/drivers/mtd/maps/Makefile and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/maps/Makefile differ
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd/maps: tc3162-flash.c
+Files linux-2.6.36/drivers/mtd/mtdchar.c and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/mtdchar.c differ
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd: mtk
+Files linux-2.6.36/drivers/mtd/nand/nand_base.c and tplink-vr300/mtk/linux-2.6.36/drivers/mtd/nand/nand_base.c differ
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/mtd: ralink
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/net: imq.c
+Files linux-2.6.36/drivers/net/Kconfig and tplink-vr300/mtk/linux-2.6.36/drivers/net/Kconfig differ
+Files linux-2.6.36/drivers/net/macvlan.c and tplink-vr300/mtk/linux-2.6.36/drivers/net/macvlan.c differ
+Files linux-2.6.36/drivers/net/Makefile and tplink-vr300/mtk/linux-2.6.36/drivers/net/Makefile differ
+Files linux-2.6.36/drivers/net/ppp_async.c and tplink-vr300/mtk/linux-2.6.36/drivers/net/ppp_async.c differ
+Files linux-2.6.36/drivers/net/ppp_generic.c and tplink-vr300/mtk/linux-2.6.36/drivers/net/ppp_generic.c differ
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/net: ppp_mppe.mod.c
+Files linux-2.6.36/drivers/net/pppoe.c and tplink-vr300/mtk/linux-2.6.36/drivers/net/pppoe.c differ
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/net: titan_ge.c
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/net: titan_ge.h
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/net: titan_mdio.c
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/net: titan_mdio.h
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/net: tun.mod.c
+Files linux-2.6.36/drivers/net/wireless/Kconfig and tplink-vr300/mtk/linux-2.6.36/drivers/net/wireless/Kconfig differ
+Files linux-2.6.36/drivers/pci/pci.c and tplink-vr300/mtk/linux-2.6.36/drivers/pci/pci.c differ
+Files linux-2.6.36/drivers/scsi/sd.c and tplink-vr300/mtk/linux-2.6.36/drivers/scsi/sd.c differ
+Files linux-2.6.36/drivers/serial/Kconfig and tplink-vr300/mtk/linux-2.6.36/drivers/serial/Kconfig differ
+Files linux-2.6.36/drivers/serial/Makefile and tplink-vr300/mtk/linux-2.6.36/drivers/serial/Makefile differ
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/serial: tc3162_uart2.c
+Only in tplink-vr300/mtk/linux-2.6.36/drivers/serial: tc3162_uart.c
