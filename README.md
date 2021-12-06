@@ -7,7 +7,7 @@ I could not find source code of the Linux ethernet driver in the sources, only b
 if (MTK_HAS_CAPS(eth->soc->caps, MTK_QDMA)) {
 ```
 
-From bootloader driver, EN7512 has QDMA capability, so may be the SoC will work with newer linux driver.
+From bootloader driver, EN7512 has QDMA capability, so may be the SoC will work with newer linux driver. Update: from drivers/net/ethernet/mediatek/Kconfig, in linux4, the driver depends on ARCH_MEDIATEK, which is ARM. In linux5, dependency: `depends on ARCH_MEDIATEK || SOC_MT7621 || SOC_MT7620`
 
 `diff` - file in the repository, will print diff of plain linux-2.6 against Tp-Link linux, ignoring some of the files. It will also ignore USB drivers and ralink, since ralink is already in newer linux.
 
@@ -21,8 +21,7 @@ mips.diff is 2.4k lines. I did try to apply mips.diff-full to linux-3.9 and ther
 
 `TCSUPPORT_XPON_HAL_API_EXT` could be ignored for the moment.
 
-The goal is to make and apply minimal mips/arch patch for 4.9, see if router boots and what works.
-
+The goal is to make and apply minimal mips/arch patch for linux5, see if router boots and what works.
 
 My router, Innbox80, PCB photos and some of the serial output: https://saturn.ffzg.hr/rot13/index.cgi?action=display_html;page_name=innbox_v80
 The router allows tftp and ssh access. The `myrouter` directory contains some files I downloaded from /proc/. I've also made a copy of /dev/mtdblock*, see tftp.txt. The version of linux is 3.1, while VR300 version is 2.6.
