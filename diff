@@ -8,6 +8,8 @@ args=(-r
       # Ignore built files.
       -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d'
       -x '*.o' -x '*.cmd' -x '*.ko'
+      # Editor files.
+      -x '*.[ch]~'
       # Ignore USB drivers for the moment.
       -x '*usb*'
       # There is ralink already in linux-3.9.

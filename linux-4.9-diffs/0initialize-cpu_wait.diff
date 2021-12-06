@@ -1,0 +1,42 @@
+--- linux-4.9.99-orig/arch/mips/kernel/idle.c	2021-12-06 09:06:38.915338016 +0200
++++ linux-4.9.99/arch/mips/kernel/idle.c	2021-12-06 09:19:44.192275758 +0200
+@@ -21,6 +21,9 @@
+ #include <asm/cpu-type.h>
+ #include <asm/idle.h>
+ #include <asm/mipsregs.h>
++#ifdef TCSUPPORT_CPU_EN7512
++#include <asm/tc3162/tc3162.h>
++#endif
+ 
+ /*
+  * Not all of the MIPS CPUs have the "wait" instruction available. Moreover,
+@@ -70,6 +73,17 @@
+ 	local_irq_enable();
+ }
+ 
++#ifdef TCSUPPORT_CPU_EN7512
++void cpu_wait_en7512(void)
++{
++	volatile unsigned int ram_access = 0;
++	int cnt;
++
++	for (cnt = 0; cnt < 100; cnt++)
++		ram_access = VPint(0xA0000000); /* DRAM access */
++}
++#endif
++
+ /*
+  * The RM7000 variant has to handle erratum 38.	 The workaround is to not
+  * have any pending stores when the WAIT instruction is executed.
+@@ -216,6 +230,11 @@
+ 		cpu_wait = r4k_wait;
+ 		if (read_c0_config7() & MIPS_CONF7_WII)
+ 			cpu_wait = r4k_wait_irqoff;
++#ifdef TCSUPPORT_CPU_EN7512
++		if (isEN7512) {
++                    cpu_wait = cpu_wait_en7512;
++		}
++#endif
+ 		break;
+ 
+ 	case CPU_74K:
