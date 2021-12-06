@@ -10,6 +10,8 @@ args=(-r
       -x '*.o' -x '*.cmd' -x '*.ko'
       # Editor files.
       -x '*.[ch]~'
+      # SMTC was removed from linux.
+      -x 'cevt-smtc.c' -x 'smtc.c'
       # Ignore USB drivers for the moment.
       -x '*usb*'
       # There is ralink already in linux-3.9.
