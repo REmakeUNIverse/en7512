@@ -9,6 +9,8 @@ if (MTK_HAS_CAPS(eth->soc->caps, MTK_QDMA)) {
 
 From bootloader driver, EN7512 has QDMA capability, so may be the SoC will work with newer linux driver. Update: from drivers/net/ethernet/mediatek/Kconfig, in linux4, the driver depends on ARCH_MEDIATEK, which is ARM. In linux5, dependency: `depends on ARCH_MEDIATEK || SOC_MT7621 || SOC_MT7620`
 
+Did not compare fully, but MT7620 (ralink_mt7620.pdf) ethernet MAC registers and values seem to be equal to values from bootloader 7512 ethernet driver (bootloader-en7512-net-src directory).
+
 `diff` - file in the repository, will print diff of plain linux-2.6 against Tp-Link linux, ignoring some of the files. It will also ignore USB drivers and ralink, since ralink is already in newer linux.
 
 * mips.files - list of changed and new files in arch/mips (`diff -q` output)
