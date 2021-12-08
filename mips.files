@@ -1,11 +1,5 @@
 Files linux-2.6.36/arch/mips/include/asm/cpu.h and vr300-linux/arch/mips/include/asm/cpu.h differ
-Files linux-2.6.36/arch/mips/include/asm/mipsregs.h and vr300-linux/arch/mips/include/asm/mipsregs.h differ
-Files linux-2.6.36/arch/mips/include/asm/pgtable-32.h and vr300-linux/arch/mips/include/asm/pgtable-32.h differ
-Files linux-2.6.36/arch/mips/include/asm/pgtable-bits.h and vr300-linux/arch/mips/include/asm/pgtable-bits.h differ
-Files linux-2.6.36/arch/mips/include/asm/pgtable.h and vr300-linux/arch/mips/include/asm/pgtable.h differ
 Files linux-2.6.36/arch/mips/include/asm/spram.h and vr300-linux/arch/mips/include/asm/spram.h differ
-Files linux-2.6.36/arch/mips/include/asm/stackframe.h and vr300-linux/arch/mips/include/asm/stackframe.h differ
-Files linux-2.6.36/arch/mips/include/asm/string.h and vr300-linux/arch/mips/include/asm/string.h differ
 Only in vr300-linux/arch/mips/include/asm: tc3162
 Files linux-2.6.36/arch/mips/include/asm/thread_info.h and vr300-linux/arch/mips/include/asm/thread_info.h differ
 Files linux-2.6.36/arch/mips/Kbuild and vr300-linux/arch/mips/Kbuild differ
@@ -17,7 +11,6 @@ Files linux-2.6.36/arch/mips/kernel/csrc-r4k.c and vr300-linux/arch/mips/kernel/
 Files linux-2.6.36/arch/mips/kernel/entry.S and vr300-linux/arch/mips/kernel/entry.S differ
 Files linux-2.6.36/arch/mips/kernel/genex.S and vr300-linux/arch/mips/kernel/genex.S differ
 Files linux-2.6.36/arch/mips/kernel/Makefile and vr300-linux/arch/mips/kernel/Makefile differ
-Files linux-2.6.36/arch/mips/kernel/mips-mt.c and vr300-linux/arch/mips/kernel/mips-mt.c differ
 Files linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c and vr300-linux/arch/mips/kernel/mips-mt-fpaff.c differ
 Files linux-2.6.36/arch/mips/kernel/smp-mt.c and vr300-linux/arch/mips/kernel/smp-mt.c differ
 Files linux-2.6.36/arch/mips/kernel/spram.c and vr300-linux/arch/mips/kernel/spram.c differ

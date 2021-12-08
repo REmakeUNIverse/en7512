@@ -1,5 +1,6 @@
-mips/include/asm/irq.h,
-mips/kernel/irq.c - rollback, removes __IMEM prefix from do_IRQ.
+arch/mips/include/asm/irq.h - rollback
+arch/mips/kernel/irq.c - rollback
+ removes __IMEM prefix from do_IRQ.
  __IMEM is optional, from include/linux/kernel.h:
 
      #ifdef CONFIG_TC3162_IMEM
@@ -9,32 +10,64 @@ mips/kernel/irq.c - rollback, removes __IMEM prefix from do_IRQ.
      #define __IMEM
      #endif
 
-mips/include/asm/irqflags.h - rollback, XPON related.
+arch/mips/include/asm/irqflags.h - rollback
+ XPON related.
 
-mips/include/asm/processor.h - rollback, XPON related.
+arch/mips/include/asm/processor.h - rollback
+ XPON related.
 
-mips/include/asm/time.h - rollback, those two defs used only
- in mips/ralink. The mips_timer_ack is also
- used in cevt-smtc, but SMTC support was dropped.
+arch/mips/include/asm/time.h - rollback
+ those two defs used only in mips/ralink. The mips_timer_ack is
+ also used in cevt-smtc, but SMTC support was dropped.
  Also in cevt-r4k. TODO mips_timer_ack.
 
-mips/kernel/time.c - rollback, it was #if 0.
+arch/mips/kernel/time.c - rollback
+ it was #if 0.
 
-mips/kernel/cpu-probe.c - move cpu_wait_en7512 to
- /mips/kernel/idle.c of linux5.
+arch/mips/kernel/cpu-probe.c - partially
+ move cpu_wait_en7512 to /mips/kernel/idle.c of linux5.
 
-mips/kernel/cevt-r4k.c - rollback. TODO mips_timer_ack.
+arch/mips/kernel/cevt-r4k.c - rollback
+ TODO mips_timer_ack.
 
-mips/kernel/traps.c - rollback.
+arch/mips/kernel/traps.c - rollback
  show_stack_nmi - called from ralink/tcwdog.c. Linux5 defines
  nmi_exception_handler. Everything else was SMTC, XPON related.
 
-mips/kernel/genex.S - this only removes irrelevant
- CONFIG_MIPS_TC3262 under #ifdef SMTC.
+arch/mips/kernel/genex.S - partially
+ removes irrelevant CONFIG_MIPS_TC3262 under #ifdef SMTC.
 
-mips/include/asm/io.h - rollback, TCSUPPORT_MT7510_E1 is not in
- build flags for EN7512.
+arch/mips/include/asm/io.h - rollback, ignored
+ TCSUPPORT_MT7510_E1 is not in build flags for EN7512.
 
-mips/include/asm/mach-generic/mangle-port.h - rollback.
+arch/mips/include/asm/mach-generic/mangle-port.h - rollback
  The variable is set in ralink/prom.c, it is 1 for EN7512.
  TODO: Turn off SWAP_IO_SPACE from Kconfig.
+
+arch/mips/include/asm/mipsregs.h - rollback
+ added to linux5.
+
+arch/mips/include/asm/pgtable-32.h - rollback
+ added to linux5.
+
+arch/mips/include/asm/pgtable-bits.h - rollback, ignored
+ TC3162 is not required build flag for EN7512. And the structure
+ changed so I do not know what to add this.
+
+arch/mips/include/asm/pgtable.h - rollback, ignored
+ TC3162.
+
+arch/mips/include/asm/stackframe.h - rollback, ignored
+ TC3162.
+
+arch/mips/include/asm/string.h - rollback, ignored
+ TC3162.
+
+ arch/mips/include/asm/thread_info.h - keept
+  alloc_thread_info is not defined in linux5.
+
+arch/mips/kernel/mips-mt.c - rollback, partially
+ added to linux5.
+ I ignored mips_mt_regdump_nmi since it is not used anywehre
+ in arch/mips.
+ I did not set tclimit = 4.
