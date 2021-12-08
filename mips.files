@@ -1,8 +1,5 @@
 Files linux-2.6.36/arch/mips/include/asm/cpu.h and vr300-linux/arch/mips/include/asm/cpu.h differ
-Files linux-2.6.36/arch/mips/include/asm/io.h and vr300-linux/arch/mips/include/asm/io.h differ
-Files linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h and vr300-linux/arch/mips/include/asm/mach-generic/mangle-port.h differ
 Files linux-2.6.36/arch/mips/include/asm/mipsregs.h and vr300-linux/arch/mips/include/asm/mipsregs.h differ
-Files linux-2.6.36/arch/mips/include/asm/module.h and vr300-linux/arch/mips/include/asm/module.h differ
 Files linux-2.6.36/arch/mips/include/asm/pgtable-32.h and vr300-linux/arch/mips/include/asm/pgtable-32.h differ
 Files linux-2.6.36/arch/mips/include/asm/pgtable-bits.h and vr300-linux/arch/mips/include/asm/pgtable-bits.h differ
 Files linux-2.6.36/arch/mips/include/asm/pgtable.h and vr300-linux/arch/mips/include/asm/pgtable.h differ

@@ -1,0 +1,40 @@
+mips/include/asm/irq.h,
+mips/kernel/irq.c - rollback, removes __IMEM prefix from do_IRQ.
+ __IMEM is optional, from include/linux/kernel.h:
+
+     #ifdef CONFIG_TC3162_IMEM
+     #define __IMEM  __attribute__  ((__section__(".imem_text")
+))
+     #else
+     #define __IMEM
+     #endif
+
+mips/include/asm/irqflags.h - rollback, XPON related.
+
+mips/include/asm/processor.h - rollback, XPON related.
+
+mips/include/asm/time.h - rollback, those two defs used only
+ in mips/ralink. The mips_timer_ack is also
+ used in cevt-smtc, but SMTC support was dropped.
+ Also in cevt-r4k. TODO mips_timer_ack.
+
+mips/kernel/time.c - rollback, it was #if 0.
+
+mips/kernel/cpu-probe.c - move cpu_wait_en7512 to
+ /mips/kernel/idle.c of linux5.
+
+mips/kernel/cevt-r4k.c - rollback. TODO mips_timer_ack.
+
+mips/kernel/traps.c - rollback.
+ show_stack_nmi - called from ralink/tcwdog.c. Linux5 defines
+ nmi_exception_handler. Everything else was SMTC, XPON related.
+
+mips/kernel/genex.S - this only removes irrelevant
+ CONFIG_MIPS_TC3262 under #ifdef SMTC.
+
+mips/include/asm/io.h - rollback, TCSUPPORT_MT7510_E1 is not in
+ build flags for EN7512.
+
+mips/include/asm/mach-generic/mangle-port.h - rollback.
+ The variable is set in ralink/prom.c, it is 1 for EN7512.
+ TODO: Turn off SWAP_IO_SPACE from Kconfig.
