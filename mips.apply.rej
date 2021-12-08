@@ -1,0 +1,849 @@
+--- arch/mips/include/asm/io.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/io.h	2019-03-07 03:40:17.000000000 +0200
+@@ -301,6 +301,156 @@
+ #define war_octeon_io_reorder_wmb()		do { } while (0)
+ #endif
+ 
++#ifdef TCSUPPORT_MT7510_E1
++#define __BUILD_MEMORY_SINGLE(pfx, bwlq, type, irq)			\
++									\
++static inline void pfx##write##bwlq(type val,				\
++				    volatile void __iomem *mem)		\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	war_octeon_io_reorder_wmb();					\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	__val = pfx##ioswab##bwlq(__mem, val);				\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	{\
++		*__mem = __val;						\
++		__asm__ __volatile("sync");			\
++	} else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++		type __tmp;						\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __writeq""\n\t"	\
++			"dsll32	%L0, %L0, 0"			"\n\t"	\
++			"dsrl32	%L0, %L0, 0"			"\n\t"	\
++			"dsll32	%M0, %M0, 0"			"\n\t"	\
++			"or	%L0, %L0, %M0"			"\n\t"	\
++			"sd	%L0, %2"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__tmp)					\
++			: "0" (__val), "m" (*__mem));			\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else								\
++		BUG();							\
++}									\
++									\
++static inline type pfx##read##bwlq(const volatile void __iomem *mem)	\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq(((unsigned long)(mem) & 0xf) + 0xbfb003a0);	\
++	__val = *__mem; \
++	__asm__ __volatile("sync");			\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	{\
++		__val = *__mem;						\
++		__asm__ __volatile("sync");			\
++	} else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __readq"	"\n\t"	\
++			"ld	%L0, %1"			"\n\t"	\
++			"dsra32	%M0, %L0, 0"			"\n\t"	\
++			"sll	%L0, %L0, 0"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__val)					\
++			: "m" (*__mem));				\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else {							\
++		__val = 0;						\
++		BUG();							\
++	}								\
++									\
++	return pfx##ioswab##bwlq(__mem, __val);				\
++}
++#else
++#if defined(WIFI_MODULE) && defined(CONFIG_MIPS_TC3262) && !defined(TCSUPPORT_CPU_EN7512) && !defined(TCSUPPORT_CPU_EN7521)
++extern void ahbErrChk(void);
++
++#define __BUILD_MEMORY_SINGLE(pfx, bwlq, type, irq)			\
++									\
++static inline void pfx##write##bwlq(type val,				\
++				    volatile void __iomem *mem)		\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	war_octeon_io_reorder_wmb();					\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	__val = pfx##ioswab##bwlq(__mem, val);				\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	\
++		*__mem = __val;						\
++	else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++		type __tmp;						\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __writeq""\n\t"	\
++			"dsll32	%L0, %L0, 0"			"\n\t"	\
++			"dsrl32	%L0, %L0, 0"			"\n\t"	\
++			"dsll32	%M0, %M0, 0"			"\n\t"	\
++			"or	%L0, %L0, %M0"			"\n\t"	\
++			"sd	%L0, %2"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__tmp)					\
++			: "0" (__val), "m" (*__mem));			\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else								\
++		BUG();							\
++}									\
++									\
++static inline type pfx##read##bwlq(const volatile void __iomem *mem)	\
++{									\
++	volatile type *__mem;						\
++	type __val;							\
++									\
++	__mem = (void *)__swizzle_addr_##bwlq((unsigned long)(mem));	\
++									\
++	if (sizeof(type) != sizeof(u64) || sizeof(u64) == sizeof(long))	\
++		{ahbErrChk();__val = *__mem;}                           \
++	else if (cpu_has_64bits) {					\
++		unsigned long __flags;					\
++									\
++		if (irq)						\
++			local_irq_save(__flags);			\
++		__asm__ __volatile__(					\
++			".set	mips3"		"\t\t# __readq"	"\n\t"	\
++			"ld	%L0, %1"			"\n\t"	\
++			"dsra32	%M0, %L0, 0"			"\n\t"	\
++			"sll	%L0, %L0, 0"			"\n\t"	\
++			".set	mips0"				"\n"	\
++			: "=r" (__val)					\
++			: "m" (*__mem));				\
++		if (irq)						\
++			local_irq_restore(__flags);			\
++	} else {							\
++		__val = 0;						\
++		BUG();							\
++	}								\
++									\
++	return pfx##ioswab##bwlq(__mem, __val);				\
++}
++
++#else
+ #define __BUILD_MEMORY_SINGLE(pfx, bwlq, type, irq)			\
+ 									\
+ static inline void pfx##write##bwlq(type val,				\
+--- arch/mips/include/asm/mach-generic/mangle-port.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/mach-generic/mangle-port.h	2019-03-07 03:40:16.000000000 +0200
+@@ -33,13 +37,22 @@
+ 
+ # define ioswabb(a, x)		(x)
+ # define __mem_ioswabb(a, x)	(x)
++//auto Choose SWAP function according to platform;
++#if defined(CONFIG_MIPS_TC3262)
++# define ioswabw(a,x)       (io_swap_noneed ? (x) : le16_to_cpu(x) )
++# define __mem_ioswabw(a,x) (io_swap_noneed ? cpu_to_le16(x) : (x) )
++# define ioswabl(a,x)		(io_swap_noneed ? (x) : le32_to_cpu(x) )
++# define __mem_ioswabl(a,x)	(io_swap_noneed ? cpu_to_le32(x) : (x) )
++# define ioswabq(a,x)		(io_swap_noneed ? (x) : le64_to_cpu(x) )
++# define __mem_ioswabq(a,x) (io_swap_noneed ? cpu_to_le32(x) : (x) )
++#else
+ # define ioswabw(a, x)		le16_to_cpu(x)
+ # define __mem_ioswabw(a, x)	(x)
+ # define ioswabl(a, x)		le32_to_cpu(x)
+ # define __mem_ioswabl(a, x)	(x)
+ # define ioswabq(a, x)		le64_to_cpu(x)
+ # define __mem_ioswabq(a, x)	(x)
+-
++#endif
+ #else
+ 
+ # define ioswabb(a, x)		(x)
+--- arch/mips/include/asm/mipsregs.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/mipsregs.h	2019-03-07 03:40:17.000000000 +0200
+@@ -1062,12 +1087,18 @@
+ #define read_c0_taglo()		__read_32bit_c0_register($28, 0)
+ #define write_c0_taglo(val)	__write_32bit_c0_register($28, 0, val)
+ 
++#define read_c0_idatalo()		__read_32bit_c0_register($28, 1)
++#define write_c0_idatalo(val)	__write_32bit_c0_register($28, 1, val)
++
+ #define read_c0_dtaglo()	__read_32bit_c0_register($28, 2)
+ #define write_c0_dtaglo(val)	__write_32bit_c0_register($28, 2, val)
+ 
+ #define read_c0_taghi()		__read_32bit_c0_register($29, 0)
+ #define write_c0_taghi(val)	__write_32bit_c0_register($29, 0, val)
+ 
++#define read_c0_idatahi()		__read_32bit_c0_register($29, 1)
++#define write_c0_idatahi(val)	__write_32bit_c0_register($29, 1, val)
++
+ #define read_c0_errorepc()	__read_ulong_c0_register($30, 0)
+ #define write_c0_errorepc(val)	__write_ulong_c0_register($30, 0, val)
+ 
+--- arch/mips/include/asm/module.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/module.h	2019-03-07 03:40:17.000000000 +0200
+@@ -84,6 +84,8 @@
+ #define MODULE_PROC_FAMILY "MIPS64_R2 "
+ #elif defined CONFIG_CPU_R3000
+ #define MODULE_PROC_FAMILY "R3000 "
++#elif defined CONFIG_CPU_TC3162
++#define MODULE_PROC_FAMILY "TC3162 "
+ #elif defined CONFIG_CPU_TX39XX
+ #define MODULE_PROC_FAMILY "TX39XX "
+ #elif defined CONFIG_CPU_VR41XX
+--- arch/mips/include/asm/pgtable-32.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/pgtable-32.h	2019-03-07 03:40:17.000000000 +0200
+@@ -159,7 +159,7 @@
+ #define pte_unmap(pte) ((void)(pte))
+ #define pte_unmap_nested(pte) ((void)(pte))
+ 
+-#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 
+ /* Swap entries must have VALID bit cleared. */
+ #define __swp_type(x)		(((x).val >> 10) & 0x1f)
+--- arch/mips/include/asm/pgtable-bits.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/pgtable-bits.h	2019-03-07 03:40:17.000000000 +0200
+@@ -50,7 +50,7 @@
+ #define _CACHE_SHIFT                3
+ #define _CACHE_MASK                 (7<<3)
+ 
+-#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ 
+ #define _PAGE_PRESENT               (1<<0)  /* implemented in software */
+ #define _PAGE_READ                  (1<<1)  /* implemented in software */
+--- arch/mips/include/asm/pgtable.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/pgtable.h	2019-03-07 03:40:17.000000000 +0200
+@@ -146,7 +146,7 @@
+ static inline void set_pte(pte_t *ptep, pte_t pteval)
+ {
+ 	*ptep = pteval;
+-#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX)
++#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX) && !defined(CONFIG_CPU_TC3162)
+ 	if (pte_val(pteval) & _PAGE_GLOBAL) {
+ 		pte_t *buddy = ptep_buddy(ptep);
+ 		/*
+@@ -162,7 +162,7 @@
+ 
+ static inline void pte_clear(struct mm_struct *mm, unsigned long addr, pte_t *ptep)
+ {
+-#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX)
++#if !defined(CONFIG_CPU_R3000) && !defined(CONFIG_CPU_TX39XX) && !defined(CONFIG_CPU_TC3162)
+ 	/* Preserve global status for the pair */
+ 	if (pte_val(*ptep_buddy(ptep)) & _PAGE_GLOBAL)
+ 		set_pte_at(mm, addr, ptep, __pte(_PAGE_GLOBAL));
+--- arch/mips/include/asm/stackframe.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/stackframe.h	2019-03-07 03:40:17.000000000 +0200
+@@ -24,7 +24,7 @@
+  */
+ #ifdef CONFIG_MIPS_MT_SMTC
+ #define STATMASK 0x1e
+-#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX)
++#elif defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TX39XX) || defined(CONFIG_CPU_TC3162)
+ #define STATMASK 0x3f
+ #else
+ #define STATMASK 0x1f
+@@ -187,8 +187,6 @@
+ 		 * need it to operate correctly
+ 		 */
+ 		LONG_S	$0, PT_R0(sp)
+-		mfc0	v1, CP0_STATUS
+-		LONG_S	$2, PT_R2(sp)
+ #ifdef CONFIG_MIPS_MT_SMTC
+ 		/*
+ 		 * Ideally, these instructions would be shuffled in
+@@ -199,6 +197,8 @@
+ 		.set	mips0
+ 		LONG_S	v1, PT_TCSTATUS(sp)
+ #endif /* CONFIG_MIPS_MT_SMTC */
++		mfc0	v1, CP0_STATUS
++		LONG_S	$2, PT_R2(sp)
+ 		LONG_S	$4, PT_R4(sp)
+ 		LONG_S	$5, PT_R5(sp)
+ 		LONG_S	v1, PT_STATUS(sp)
+@@ -409,6 +410,8 @@
+ 		mfc0	v0, CP0_CAUSE
+ 		ori	v0, v0, C_SW1
+ 		mtc0	v0, CP0_CAUSE
++//#endif
++
+ 0:
+ 		/*
+ 		 * This test should really never branch but
+--- arch/mips/include/asm/string.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/string.h	2019-03-07 03:40:17.000000000 +0200
+@@ -84,7 +84,7 @@
+ 	"addiu\t%1,1\n\t"
+ 	"bnez\t%2,1b\n\t"
+ 	"lbu\t%2,(%0)\n\t"
+-#if defined(CONFIG_CPU_R3000)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TC3162)
+ 	"nop\n\t"
+ #endif
+ 	"move\t%2,$1\n"
+@@ -117,7 +117,7 @@
+ 	"bnez\t%3,1b\n\t"
+ 	"addiu\t%1,1\n"
+ 	"2:\n\t"
+-#if defined(CONFIG_CPU_R3000)
++#if defined(CONFIG_CPU_R3000) || defined(CONFIG_CPU_TC3162)
+ 	"nop\n\t"
+ #endif
+ 	"move\t%3,$1\n"
+--- arch/mips/include/asm/thread_info.h	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/include/asm/thread_info.h	2019-03-07 03:40:17.000000000 +0200
+@@ -92,8 +96,12 @@
+ #ifdef CONFIG_DEBUG_STACK_USAGE
+ #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
+ #else
++#if defined(CONFIG_CPU_TC3162) || defined(CONFIG_MIPS_TC3262)
++#define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
++#else
+ #define alloc_thread_info(tsk) kmalloc(THREAD_SIZE, GFP_KERNEL)
+ #endif
++#endif
+ 
+ #define free_thread_info(info) kfree(info)
+ 
+--- arch/mips/Kbuild	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/Kbuild	2019-03-07 03:40:18.000000000 +0200
+@@ -1,7 +1,7 @@
+ # Fail on warnings - also for files referenced in subdirs
+ # -Werror can be disabled for specific files using:
+ # CFLAGS_<file.o> := -Wno-error
+-subdir-ccflags-y := -Werror
++#subdir-ccflags-y := -Werror
+ 
+ # platform specific definitions
+ include arch/mips/Kbuild.platforms
+--- arch/mips/Kbuild.platforms	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/Kbuild.platforms	2019-03-07 03:40:18.000000000 +0200
+@@ -18,6 +18,7 @@
+ platforms += pnx833x
+ platforms += pnx8550
+ platforms += powertv
++platforms += ralink
+ platforms += rb532
+ platforms += sgi-ip22
+ platforms += sgi-ip27
+--- arch/mips/Kconfig	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/Kconfig	2019-03-07 03:40:18.000000000 +0200
+@@ -252,6 +252,65 @@
+ 	  This enables support for the MIPS Technologies Malta evaluation
+ 	  board.
+ 
++config MIPS_TC3262
++	bool "TrendChip's TC3262 Board"
++	select CPU_MIPSR2_IRQ_VI
++	select CPU_MIPSR2_IRQ_EI
++	select NO_EXCEPT_FILL
++	select BOOT_RAW
++	select CEVT_R4K
++	select CSRC_R4K
++	select DMA_NONCOHERENT
++	select IRQ_CPU
++	select HW_HAS_PCI
++	select SWAP_IO_SPACE
++	select SYS_HAS_CPU_MIPS32_R1
++	select SYS_HAS_CPU_MIPS32_R2
++	select SYS_HAS_CPU_MIPS64_R1
++	select SYS_HAS_EARLY_PRINTK
++	select SYS_SUPPORTS_32BIT_KERNEL
++	select SYS_SUPPORTS_BIG_ENDIAN
++	select SYS_SUPPORTS_LITTLE_ENDIAN
++	select SYS_SUPPORTS_MULTITHREADING
++	select TC3162_ADSL
++	select TC3162_IMEM
++	select TC3162_DMEM
++	help
++	  This enables support for TrendChip's TC3262 based board.  
++	  board.
++
++config MIPS_TC3182
++	bool "TrendChip's TC3182 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for TrendChip's TC3182 based board.  
++	  board.
++
++config MIPS_RT63165
++	bool "Ralink's RT63165 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for Ralink's RT63165 based board.  
++
++config MIPS_RT65168
++	bool "Ralink's RT65168 Board"
++	depends on MIPS_TC3262
++	select RALINK_VDSL
++	help
++	  This enables support for Ralink's RT65168 based board.  
++
++config MIPS_RT63365
++	bool "Ralink's RT63365 Board"
++	depends on MIPS_TC3262
++	help
++	  This enables support for Ralink's RT63365 based board.  
++config MIPS_MT7510
++	bool "MediaTek's MT7510 Board"
++	depends on MIPS_TC3262
++	select RALINK_VDSL
++	help
++	  This enables support for MediaTek's MT7510 based board.  
++	  
+ config MIPS_SIM
+ 	bool 'MIPS simulator (MIPSsim)'
+ 	select CEVT_R4K
+@@ -2329,3 +2414,5 @@
+ source "crypto/Kconfig"
+ 
+ source "lib/Kconfig"
++
++source "pwModel/Kconfig"
+--- arch/mips/kernel/Makefile	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/kernel/Makefile	2019-03-07 03:40:15.000000000 +0200
+@@ -36,6 +36,7 @@
+ obj-$(CONFIG_CPU_MIPS32)	+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_MIPS64)	+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R3000)		+= r2300_fpu.o r2300_switch.o
++obj-$(CONFIG_CPU_TC3162)	+= r2300_fpu.o r2300_switch.o
+ obj-$(CONFIG_CPU_R4300)		+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R4X00)		+= r4k_fpu.o r4k_switch.o
+ obj-$(CONFIG_CPU_R5000)		+= r4k_fpu.o r4k_switch.o
+--- arch/mips/kernel/mips-mt.c	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/kernel/mips-mt.c	2019-03-07 03:40:15.000000000 +0200
+@@ -125,12 +125,108 @@
+ 	local_irq_restore(flags);
+ }
+ 
++/*
++ * Dump new MIPS MT state for the core. Does not leave TCs halted.
++ * Takes an argument which taken to be a pre-call MVPControl value.
++ */
++
++void mips_mt_regdump_nmi(unsigned long mvpctl)
++{
++	unsigned long flags;
++	unsigned long vpflags;
++	unsigned long mvpconf0;
++	int nvpe;
++	int ntc;
++	int i;
++	int tc;
++	unsigned long haltval;
++	unsigned long tcstatval;
++#ifdef CONFIG_MIPS_MT_SMTC
++	void smtc_soft_dump(void);
++#endif /* CONFIG_MIPT_MT_SMTC */
++
++	local_irq_save(flags);
++	vpflags = dvpe();
++	printk("=== MIPS MT State Dump ===\n");
++	printk("-- Global State --\n");
++	printk("   MVPControl Passed: %08lx\n", mvpctl);
++	printk("   MVPControl Read: %08lx\n", vpflags);
++	printk("   MVPConf0 : %08lx\n", (mvpconf0 = read_c0_mvpconf0()));
++	nvpe = ((mvpconf0 & MVPCONF0_PVPE) >> MVPCONF0_PVPE_SHIFT) + 1;
++	ntc = ((mvpconf0 & MVPCONF0_PTC) >> MVPCONF0_PTC_SHIFT) + 1;
++	printk("-- per-VPE State --\n");
++	for (i = 0; i < nvpe; i++) {
++		for (tc = 0; tc < ntc; tc++) {
++			settc(tc);
++			if ((read_tc_c0_tcbind() & TCBIND_CURVPE) == i) {
++				printk("  VPE %d\n", i);
++				printk("   VPEControl : %08lx\n",
++				       read_vpe_c0_vpecontrol());
++				printk("   VPEConf0 : %08lx\n",
++				       read_vpe_c0_vpeconf0());
++				printk("   VPE%d.Status : %08lx\n",
++				       i, read_vpe_c0_status());
++				//printk("   VPE%d.EPC : %08lx %pS\n",
++				//       i, read_vpe_c0_epc(),
++				//       (void *) read_vpe_c0_epc());
++				printk("   VPE%d.EPC : %08lx\n",
++				       i, read_vpe_c0_epc());
++				printk("   VPE%d.Cause : %08lx\n",
++				       i, read_vpe_c0_cause());
++				printk("   VPE%d.Config7 : %08lx\n",
++				       i, read_vpe_c0_config7());
++				break; /* Next VPE */
++			}
++		}
++	}
++	printk("-- per-TC State --\n");
++	for (tc = 0; tc < ntc; tc++) {
++		settc(tc);
++		if (read_tc_c0_tcbind() == read_c0_tcbind()) {
++			/* Are we dumping ourself?  */
++			haltval = 0; /* Then we're not halted, and mustn't be */
++			tcstatval = flags; /* And pre-dump TCStatus is flags */
++			printk("  TC %d (current TC with VPE EPC above)\n", tc);
++		} else {
++			haltval = read_tc_c0_tchalt();
++			write_tc_c0_tchalt(1);
++			tcstatval = read_tc_c0_tcstatus();
++			printk("  TC %d\n", tc);
++		}
++		printk("   TCStatus : %08lx\n", tcstatval);
++		printk("   TCBind : %08lx\n", read_tc_c0_tcbind());
++		//printk("   TCRestart : %08lx %pS\n",
++		//       read_tc_c0_tcrestart(), (void *) read_tc_c0_tcrestart());
++		printk("   TCRestart : %08lx\n",
++		       read_tc_c0_tcrestart());
++		printk("   TCHalt : %08lx\n", haltval);
++		printk("   TCContext : %08lx\n", read_tc_c0_tccontext());
++		if (!haltval)
++			write_tc_c0_tchalt(0);
++	}
++#ifdef CONFIG_MIPS_MT_SMTC
++	smtc_soft_dump();
++#endif /* CONFIG_MIPT_MT_SMTC */
++	printk("===========================\n");
++	evpe(vpflags);
++	local_irq_restore(flags);
++}
++
++
++static int mt_opt_es;
+ static int mt_opt_norps;
+ static int mt_opt_rpsctl = -1;
+ static int mt_opt_nblsu = -1;
+ static int mt_opt_forceconfig7;
+ static int mt_opt_config7 = -1;
+ 
++static int __init es_set(char *str)
++{
++	get_option(&str, &mt_opt_es);
++	return 1;
++}
++__setup("es=", es_set);
++
+ static int __init rps_disable(char *s)
+ {
+ 	mt_opt_norps = 1;
+@@ -209,6 +305,13 @@
+ 	unsigned int oconfig7 = read_c0_config7();
+ 	unsigned int nconfig7 = oconfig7;
+ 
++	if (mt_opt_es >= 0) {
++		printk("34K sync es set to %d.\n", mt_opt_es);
++		if (mt_opt_es)
++			nconfig7 |= (1 << 8);
++		else
++			nconfig7 &= ~(1 << 8);
++	}
+ 	if (mt_opt_norps) {
+ 		printk("\"norps\" option deprectated: use \"rpsctl=\"\n");
+ 	}
+--- arch/mips/kernel/smp-mt.c	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/kernel/smp-mt.c	2019-03-07 03:40:15.000000000 +0200
+@@ -151,6 +151,10 @@
+ 
+ static void __cpuinit vsmp_init_secondary(void)
+ {
++#ifdef CONFIG_MIPS_TC3262
++	write_c0_status((read_c0_status() & ~ST0_IM ) |
++	                (STATUSF_IP0 | STATUSF_IP1)); 
++#else
+ 	extern int gic_present;
+ 
+ 	/* This is Malta specific: IPI,performance and timer inetrrupts */
+--- arch/mips/kernel/spram.c	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/kernel/spram.c	2019-03-07 03:40:15.000000000 +0200
+@@ -12,12 +12,84 @@
+ #include <linux/kernel.h>
+ #include <linux/ptrace.h>
+ #include <linux/stddef.h>
++#include <linux/module.h>
+ 
++#include <asm/cpu.h>
+ #include <asm/fpu.h>
+ #include <asm/mipsregs.h>
+ #include <asm/system.h>
+ #include <asm/r4kcache.h>
+ #include <asm/hazards.h>
++#ifdef CONFIG_MIPS_TC3262
++#include <asm/tc3162/tc3162.h>
++
++extern int __imem, __dmem;
++#endif
++static char *sram_allocp = NULL;
++static int sram_size = 0;
++static int sram_free = 0;
++
++static char *dspram_p = NULL;
++static int dspram_used_size = 0;
++static int dspram_max_size = 0x1000;	//4K
++int is_sram_addr(void *p)
++{
++	if ((CKSEG1ADDR(p) & 0xffffc000) == (CKSEG1ADDR(DSPRAM_BASE) & 0xffffc000))
++		return 1;
++	else 
++		return 0;
++}
++EXPORT_SYMBOL(is_sram_addr);
++
++void *alloc_sram(int n)
++{
++	if (sram_allocp == NULL)
++		return NULL;
++
++	if (sram_free >= n) {
++		sram_free -= n;
++		sram_allocp += n;
++		printk("alloc_sram p=%p free=%04x\n", sram_allocp, sram_free);
++		return sram_allocp - n;
++	} else 
++		return NULL;
++}
++EXPORT_SYMBOL(alloc_sram);
++
++void free_sram(void *p, int n)
++{
++	if (sram_allocp == (p+n)) {
++		sram_free += n;
++		sram_allocp -= n;
++	}
++	printk("free_sram p=%p free=%04x\n", sram_allocp, sram_free);
++}
++EXPORT_SYMBOL(free_sram);
++
++void write_to_dspram(long  data)
++{
++	if(dspram_p == NULL || dspram_max_size == 0)
++		return;
++
++	
++	*(long *)dspram_p = data;
++	dspram_p += sizeof(long);
++
++	dspram_used_size += sizeof(long);
++
++	if(dspram_used_size >= dspram_max_size){
++		dspram_p = (char *)(DSPRAM_BASE);
++		dspram_used_size = 0;
++	}
++}
++
++unsigned int dspram_base_addr()
++{
++	return DSPRAM_BASE;
++}
++
++
++#define MIPS34K_Index_Store_Data_I	0x0c
+ 
+ /*
+  * These definitions are correct for the 24K/34K/74K SPRAM sample
+@@ -38,7 +110,7 @@
+ /*
+  * Different semantics to the set_c0_* function built by __BUILD_SET_C0
+  */
+-static __cpuinit unsigned int bis_c0_errctl(unsigned int set)
++static unsigned int bis_c0_errctl(unsigned int set)
+ {
+ 	unsigned int res;
+ 	res = read_c0_errctl();
+@@ -46,7 +118,36 @@
+ 	return res;
+ }
+ 
+-static __cpuinit void ispram_store_tag(unsigned int offset, unsigned int data)
++static void ispram_store_data(unsigned int offset, unsigned int datalo, unsigned int datahi)
++{
++	unsigned int errctl;
++
++	/* enable SPRAM tag access */
++	errctl = bis_c0_errctl(ERRCTL_SPRAM);
++	ehb();
++
++#ifdef CONFIG_CPU_BIG_ENDIAN
++	write_c0_idatalo(datahi);
++	ehb();
++
++	write_c0_idatahi(datalo);
++	ehb();
++#else
++	write_c0_idatalo(datalo);
++	ehb();
++
++	write_c0_idatahi(datahi);
++	ehb();
++#endif
++
++	cache_op(MIPS34K_Index_Store_Data_I, CKSEG0|offset);
++	ehb();
++
++	write_c0_errctl(errctl);
++	ehb();
++}
++
++static void ispram_store_tag(unsigned int offset, unsigned int data)
+ {
+ 	unsigned int errctl;
+ 
+@@ -65,7 +166,7 @@
+ }
+ 
+ 
+-static __cpuinit unsigned int ispram_load_tag(unsigned int offset)
++static unsigned int ispram_load_tag(unsigned int offset)
+ {
+ 	unsigned int data;
+ 	unsigned int errctl;
+@@ -116,7 +217,7 @@
+ 	return data;
+ }
+ 
+-static __cpuinit void probe_spram(char *type,
++static void probe_spram(char *type,
+ 	    unsigned int base,
+ 	    unsigned int (*read)(unsigned int),
+ 	    void (*write)(unsigned int, unsigned int))
+@@ -210,6 +324,36 @@
+ 		offset += 2 * SPRAM_TAG_STRIDE;
+ 	}
+ }
++
++void ispram_fill(void)
++{
++	unsigned int pa, size, tag0, tag1;
++	unsigned int offset;
++	unsigned int datalo, datahi;
++
++	tag0 = ispram_load_tag(0);
++	tag1 = ispram_load_tag(0+SPRAM_TAG_STRIDE);
++
++	pa = tag0 & SPRAM_TAG0_PA_MASK;
++	size = tag1 & SPRAM_TAG1_SIZE_MASK;
++
++	if (size == 0)
++		return;
++
++	for (offset = 0; offset < size; offset += 8) {
++		datalo = *(unsigned int *) (PHYS_TO_K0(pa + offset));
++		datahi = *(unsigned int *) (PHYS_TO_K0(pa + offset + 4));
++		ispram_store_data(offset, datalo, datahi);
++	}
++}
++
++void ispram_refill(void)
++{
++	//probe_spram("ISPRAM", CPHYSADDR(&__imem),
++	//		&ispram_load_tag, &ispram_store_tag);
++	ispram_fill();
++}
++
+ void __cpuinit spram_config(void)
+ {
+ 	struct cpuinfo_mips *c = &current_cpu_data;
+@@ -222,6 +366,41 @@
+ 	case CPU_1004K:
+ 		config0 = read_c0_config();
+ 		/* FIXME: addresses are Malta specific */
++#ifdef CONFIG_MIPS_TC3262
++#ifdef CONFIG_TC3162_IMEM
++		if (config0 & (1<<24)) {
++			probe_spram("ISPRAM", CPHYSADDR(&__imem),
++				    &ispram_load_tag, &ispram_store_tag);
++			ispram_fill();
++			if (!isRT63165 && !isRT63365 && !isMT751020 && !isMT7505 && !isEN751221)
++				VPint(CR_DMC_ISPCFGR) = (CPHYSADDR(&__imem) & 0xfffff000) | (1<<8) | (0x7);
++		}
++#endif
++#ifdef CONFIG_TC3162_DMEM
++		if (isRT63165 || isRT63365) {
++			VPint(CR_SRAM) = (CPHYSADDR(DSPRAM_BASE) & 0xffffc000) | (1<<0);
++			printk("Enable SRAM=%08lx\n", VPint(CR_SRAM));
++
++			sram_allocp = (char *) CKSEG1ADDR(DSPRAM_BASE);
++			sram_size = sram_free = 0x8000;
++		} else {
++			if (!isTC3182 && !isRT65168) {
++				if (config0 & (1<<23)) {
++					if(isMT751020){
++						probe_spram("DSPRAM", CPHYSADDR(DSPRAM_BASE),
++							&dspram_load_tag, &dspram_store_tag);
++						dspram_p = (char *)(DSPRAM_BASE);
++					}
++					else{
++						probe_spram("DSPRAM", CPHYSADDR(DSPRAM_BASE),
++							&dspram_load_tag, &dspram_store_tag);
++						VPint(CR_DMC_DSPCFGR) = (CPHYSADDR(DSPRAM_BASE) & 0xfffff000) | (1<<8) | (0x7);
++					}
++				}
++			}
++		}
++#endif
++#else
+ 		if (config0 & (1<<24)) {
+ 			probe_spram("ISPRAM", 0x1c000000,
+ 				    &ispram_load_tag, &ispram_store_tag);
+--- arch/mips/kernel/vpe.c	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/kernel/vpe.c	2019-03-07 03:40:15.000000000 +0200
+@@ -148,9 +148,9 @@
+ 	spinlock_t tc_list_lock;
+ 	struct list_head tc_list;	/* Thread contexts */
+ } vpecontrol = {
+-	.vpe_list_lock	= SPIN_LOCK_UNLOCKED,
++	.vpe_list_lock	= __SPIN_LOCK_UNLOCKED(vpecontrol.vpe_list_lock),
+ 	.vpe_list	= LIST_HEAD_INIT(vpecontrol.vpe_list),
+-	.tc_list_lock	= SPIN_LOCK_UNLOCKED,
++	.tc_list_lock	= __SPIN_LOCK_UNLOCKED(vpecontrol.tc_list_lock),
+ 	.tc_list	= LIST_HEAD_INIT(vpecontrol.tc_list)
+ };
+ 
+@@ -192,7 +192,7 @@
+ 	}
+ 	spin_unlock(&vpecontrol.tc_list_lock);
+ 
+-	return NULL;
++	return res;//modify by xfu seams like a bug
+ }
+ 
+ /* allocate a vpe and associate it with this minor (or index) */
+--- arch/mips/mm/cache.c	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/mm/cache.c	2019-03-07 03:40:15.000000000 +0200
+@@ -51,6 +51,7 @@
+ void (*_dma_cache_wback)(unsigned long start, unsigned long size);
+ void (*_dma_cache_inv)(unsigned long start, unsigned long size);
+ 
++EXPORT_SYMBOL(_dma_cache_inv);
+ EXPORT_SYMBOL(_dma_cache_wback_inv);
+ 
+ #endif /* CONFIG_DMA_NONCOHERENT */
+--- arch/mips/mm/Makefile	2010-10-20 23:30:22.000000000 +0300
++++ arch/mips/mm/Makefile	2019-03-07 03:40:15.000000000 +0200
+@@ -16,6 +16,7 @@
+ obj-$(CONFIG_CPU_NEVADA)	+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R10000)	+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R3000)		+= c-r3k.o tlb-r3k.o
++obj-$(CONFIG_CPU_TC3162)	+= c-tc3162.o tlb-r3k.o pg-r4k.o
+ obj-$(CONFIG_CPU_R4300)		+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R4X00)		+= c-r4k.o cex-gen.o tlb-r4k.o
+ obj-$(CONFIG_CPU_R5000)		+= c-r4k.o cex-gen.o tlb-r4k.o

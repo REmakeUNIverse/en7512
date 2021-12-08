@@ -4,17 +4,21 @@ args=(-r
       -I '$Id:' -I '$Header' -I '$Revision' \
       -I printk -I VERSION \
       # Ignore files with only code comment changes.
-      -I '\*'
+      -I '^\*'
       # Ignore built files.
       -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d'
       -x '*.o' -x '*.cmd' -x '*.ko'
       # Editor files.
-      -x '*.[ch]~'
+      -x '*.[chS]~'
       # SMTC was removed from linux.
       -x 'cevt-smtc.c' -x 'smtc.c'
+      # No ecnt. ecnt looks like an API.
+      -x '*ecnt*' -x pci-7512api.c
+      # Will try linux softfloat first.
+      -x 'softfloat'
       # Ignore USB drivers for the moment.
       -x '*usb*'
-      # There is ralink already in linux-3.9.
+      # There is ralink already.
       -x '*ralink*'
       -x '.gitignore'
       linux-2.6.36/"$1" vr300-linux/"$1")
@@ -22,7 +26,7 @@ args=(-r
 # bash diff drivers -u
 # To include new files: bash diff drivers -uN
 # Files only: bash diff drivers -q
-diff ${args[@]} ${@:2}
+diff "${args[@]}" ${@:2}
 
 # cd linux-3.9
 # patch -p1 -o tmp/apply < ../mips.diff-full

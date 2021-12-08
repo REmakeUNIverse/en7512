@@ -1,52 +1,40 @@
-Files linux-2.6.36/arch/mips/include/asm/cpu.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/cpu.h differ
-Files linux-2.6.36/arch/mips/include/asm/io.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/io.h differ
-Files linux-2.6.36/arch/mips/include/asm/irqflags.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/irqflags.h differ
-Files linux-2.6.36/arch/mips/include/asm/irq.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/irq.h differ
-Files linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h differ
-Files linux-2.6.36/arch/mips/include/asm/mipsregs.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/mipsregs.h differ
-Files linux-2.6.36/arch/mips/include/asm/module.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/module.h differ
-Files linux-2.6.36/arch/mips/include/asm/pgtable-32.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable-32.h differ
-Files linux-2.6.36/arch/mips/include/asm/pgtable-bits.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable-bits.h differ
-Files linux-2.6.36/arch/mips/include/asm/pgtable.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/pgtable.h differ
-Files linux-2.6.36/arch/mips/include/asm/processor.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/processor.h differ
-Files linux-2.6.36/arch/mips/include/asm/spram.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/spram.h differ
-Files linux-2.6.36/arch/mips/include/asm/stackframe.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/stackframe.h differ
-Files linux-2.6.36/arch/mips/include/asm/string.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/string.h differ
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm: tc3162
-Files linux-2.6.36/arch/mips/include/asm/thread_info.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/thread_info.h differ
-Files linux-2.6.36/arch/mips/include/asm/time.h and tplink-vr300/mtk/linux-2.6.36/arch/mips/include/asm/time.h differ
-Files linux-2.6.36/arch/mips/Kbuild and tplink-vr300/mtk/linux-2.6.36/arch/mips/Kbuild differ
-Files linux-2.6.36/arch/mips/Kbuild.platforms and tplink-vr300/mtk/linux-2.6.36/arch/mips/Kbuild.platforms differ
-Files linux-2.6.36/arch/mips/Kconfig and tplink-vr300/mtk/linux-2.6.36/arch/mips/Kconfig differ
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel: asm-offsets.s
-Files linux-2.6.36/arch/mips/kernel/cevt-r4k.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cevt-r4k.c differ
-Files linux-2.6.36/arch/mips/kernel/cevt-smtc.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cevt-smtc.c differ
-Files linux-2.6.36/arch/mips/kernel/cpu-probe.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/cpu-probe.c differ
-Files linux-2.6.36/arch/mips/kernel/csrc-r4k.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/csrc-r4k.c differ
-Files linux-2.6.36/arch/mips/kernel/entry.S and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/entry.S differ
-Files linux-2.6.36/arch/mips/kernel/genex.S and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/genex.S differ
-Files linux-2.6.36/arch/mips/kernel/irq.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/irq.c differ
-Files linux-2.6.36/arch/mips/kernel/Makefile and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/Makefile differ
-Files linux-2.6.36/arch/mips/kernel/mips-mt.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/mips-mt.c differ
-Files linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c differ
-Files linux-2.6.36/arch/mips/kernel/smp-mt.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/smp-mt.c differ
-Files linux-2.6.36/arch/mips/kernel/smtc.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/smtc.c differ
-Files linux-2.6.36/arch/mips/kernel/spram.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/spram.c differ
-Files linux-2.6.36/arch/mips/kernel/time.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/time.c differ
-Files linux-2.6.36/arch/mips/kernel/traps.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/traps.c differ
-Files linux-2.6.36/arch/mips/kernel/vmlinux.lds.S and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/vmlinux.lds.S differ
-Files linux-2.6.36/arch/mips/kernel/vpe.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/kernel/vpe.c differ
-Files linux-2.6.36/arch/mips/mm/cache.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/cache.c differ
-Files linux-2.6.36/arch/mips/mm/c-r4k.c and tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/c-r4k.c differ
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/mm: c-tc3162.c
-Files linux-2.6.36/arch/mips/mm/Makefile and tplink-vr300/mtk/linux-2.6.36/arch/mips/mm/Makefile differ
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: fixup-tc3162.c
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: fixup-tc3162u.c
-Files linux-2.6.36/arch/mips/pci/Makefile and tplink-vr300/mtk/linux-2.6.36/arch/mips/pci/Makefile differ
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: ops-tc3162.c
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: ops-tc3162u.c
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pci-7512api.c
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pcie-phy.c
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pci-tc3162.c
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips/pci: pci-tc3162u.c
-Only in tplink-vr300/mtk/linux-2.6.36/arch/mips: softfloat
+Files linux-2.6.36/arch/mips/include/asm/cpu.h and vr300-linux/arch/mips/include/asm/cpu.h differ
+Files linux-2.6.36/arch/mips/include/asm/io.h and vr300-linux/arch/mips/include/asm/io.h differ
+Files linux-2.6.36/arch/mips/include/asm/mach-generic/mangle-port.h and vr300-linux/arch/mips/include/asm/mach-generic/mangle-port.h differ
+Files linux-2.6.36/arch/mips/include/asm/mipsregs.h and vr300-linux/arch/mips/include/asm/mipsregs.h differ
+Files linux-2.6.36/arch/mips/include/asm/module.h and vr300-linux/arch/mips/include/asm/module.h differ
+Files linux-2.6.36/arch/mips/include/asm/pgtable-32.h and vr300-linux/arch/mips/include/asm/pgtable-32.h differ
+Files linux-2.6.36/arch/mips/include/asm/pgtable-bits.h and vr300-linux/arch/mips/include/asm/pgtable-bits.h differ
+Files linux-2.6.36/arch/mips/include/asm/pgtable.h and vr300-linux/arch/mips/include/asm/pgtable.h differ
+Files linux-2.6.36/arch/mips/include/asm/spram.h and vr300-linux/arch/mips/include/asm/spram.h differ
+Files linux-2.6.36/arch/mips/include/asm/stackframe.h and vr300-linux/arch/mips/include/asm/stackframe.h differ
+Files linux-2.6.36/arch/mips/include/asm/string.h and vr300-linux/arch/mips/include/asm/string.h differ
+Only in vr300-linux/arch/mips/include/asm: tc3162
+Files linux-2.6.36/arch/mips/include/asm/thread_info.h and vr300-linux/arch/mips/include/asm/thread_info.h differ
+Files linux-2.6.36/arch/mips/Kbuild and vr300-linux/arch/mips/Kbuild differ
+Files linux-2.6.36/arch/mips/Kbuild.platforms and vr300-linux/arch/mips/Kbuild.platforms differ
+Files linux-2.6.36/arch/mips/Kconfig and vr300-linux/arch/mips/Kconfig differ
+Only in vr300-linux/arch/mips/kernel: asm-offsets.s
+Files linux-2.6.36/arch/mips/kernel/cpu-probe.c and vr300-linux/arch/mips/kernel/cpu-probe.c differ
+Files linux-2.6.36/arch/mips/kernel/csrc-r4k.c and vr300-linux/arch/mips/kernel/csrc-r4k.c differ
+Files linux-2.6.36/arch/mips/kernel/entry.S and vr300-linux/arch/mips/kernel/entry.S differ
+Files linux-2.6.36/arch/mips/kernel/genex.S and vr300-linux/arch/mips/kernel/genex.S differ
+Files linux-2.6.36/arch/mips/kernel/Makefile and vr300-linux/arch/mips/kernel/Makefile differ
+Files linux-2.6.36/arch/mips/kernel/mips-mt.c and vr300-linux/arch/mips/kernel/mips-mt.c differ
+Files linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c and vr300-linux/arch/mips/kernel/mips-mt-fpaff.c differ
+Files linux-2.6.36/arch/mips/kernel/smp-mt.c and vr300-linux/arch/mips/kernel/smp-mt.c differ
+Files linux-2.6.36/arch/mips/kernel/spram.c and vr300-linux/arch/mips/kernel/spram.c differ
+Files linux-2.6.36/arch/mips/kernel/vmlinux.lds.S and vr300-linux/arch/mips/kernel/vmlinux.lds.S differ
+Files linux-2.6.36/arch/mips/kernel/vpe.c and vr300-linux/arch/mips/kernel/vpe.c differ
+Files linux-2.6.36/arch/mips/mm/cache.c and vr300-linux/arch/mips/mm/cache.c differ
+Files linux-2.6.36/arch/mips/mm/c-r4k.c and vr300-linux/arch/mips/mm/c-r4k.c differ
+Only in vr300-linux/arch/mips/mm: c-tc3162.c
+Files linux-2.6.36/arch/mips/mm/Makefile and vr300-linux/arch/mips/mm/Makefile differ
+Only in vr300-linux/arch/mips/pci: fixup-tc3162.c
+Only in vr300-linux/arch/mips/pci: fixup-tc3162u.c
+Files linux-2.6.36/arch/mips/pci/Makefile and vr300-linux/arch/mips/pci/Makefile differ
+Only in vr300-linux/arch/mips/pci: ops-tc3162.c
+Only in vr300-linux/arch/mips/pci: ops-tc3162u.c
+Only in vr300-linux/arch/mips/pci: pcie-phy.c
+Only in vr300-linux/arch/mips/pci: pci-tc3162.c
+Only in vr300-linux/arch/mips/pci: pci-tc3162u.c
