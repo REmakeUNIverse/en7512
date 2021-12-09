@@ -1,6 +1,8 @@
 arch/mips/include/asm/irq.h - rollback
 arch/mips/kernel/irq.c - rollback
  removes __IMEM prefix from do_IRQ.
+ It is preformance optimisation. For the moment, to simplify,
+ I will disable SPRAM: TC3162_IMEM, TC3162_DMEM config defs.
  __IMEM is optional, from include/linux/kernel.h:
 
      #ifdef CONFIG_TC3162_IMEM
@@ -9,6 +11,10 @@ arch/mips/kernel/irq.c - rollback
      #else
      #define __IMEM
      #endif
+ See arch/mips/kernel/vmlinux.lds.S
+ http://bravegnu.org/gnu-eprog/lds.html
+ Working with ScratchPad RAMS for  MIPS32® Cores:
+ https://s3-eu-west-1.amazonaws.com/downloads-mips/documents/MD00540-2B-SPRAM-APP-02.01.pdf
 
 arch/mips/include/asm/irqflags.h - rollback
  XPON related.
