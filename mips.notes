@@ -69,11 +69,41 @@ arch/mips/include/asm/stackframe.h - rollback, ignored
 arch/mips/include/asm/string.h - rollback, ignored
  TC3162.
 
- arch/mips/include/asm/thread_info.h - keept
-  alloc_thread_info is not defined in linux5.
+ arch/mips/include/asm/thread_info.h - rollback, partially
+  alloc_thread_info is not defined in linux5. Why:
+  http://lkml.iu.edu/hypermail//linux/kernel/1205.1/00234.html
+  http://lkml.iu.edu/hypermail//linux/kernel/1205.1/00227.html
+  MT introduced two changes:
+  1. #define THREAD_SIZE_ORDER (2)
+  2. #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
+  kzalloc is kmalloc but will fill zeros. Why do this?
+  alloc_thread_info is called from kernel/fork.c, diff:
+  static inline struct thread_info *alloc_thread_info(struct task_struct *tsk)
+  {
+ -#ifdef CONFIG_DEBUG_STACK_USAGE
+ +#if defined(CONFIG_DEBUG_STACK_USAGE) || defined(CONFIG_CPU_TC3162) || defined(CONFIG_MIPS_TC3262)
+ 	gfp_t mask = GFP_KERNEL | __GFP_ZERO;
+ #else
+
+ __GFP_ZERO means fill zeros.
+ So may be this done for debugging.
 
 arch/mips/kernel/mips-mt.c - rollback, partially
  added to linux5.
  I ignored mips_mt_regdump_nmi since it is not used anywehre
  in arch/mips.
  I did not set tclimit = 4.
+
+arch/mips/kernel/spram.c - rollback, ignore
+ See IMEM. Will turn off CONFIG_MIPS_SPRAM.
+
+arch/mips/Kbuild - rollback, ignore
+
+arch/mips/kernel/smp-mt.c - rollback
+ add to linux5.
+
+arch/mips/kernel/vpe.c - rollback, ignore
+
+arch/mips/mm/cache.c - rollback, ignore
+ Not sure why EXPORT_SYMBOL(_dma_cache_inv), if _dma_cache_inv
+ is not defined in cache.c.
