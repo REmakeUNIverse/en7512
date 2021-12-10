@@ -107,3 +107,8 @@ arch/mips/kernel/vpe.c - rollback, ignore
 arch/mips/mm/cache.c - rollback, ignore
  Not sure why EXPORT_SYMBOL(_dma_cache_inv), if _dma_cache_inv
  is not defined in cache.c.
+
+arch/mips/include/asm/spram.h - rollback, ignore
+
+arch/mips/mm/c-r4k.c - rollback, ignore
+ __IMEM optimisations.

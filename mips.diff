@@ -10,18 +10,6 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  #define PRID_IMP_UNKNOWN	0xff00
  
  /*
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/include/asm/spram.h vr300-linux/arch/mips/include/asm/spram.h
---- linux-2.6.36/arch/mips/include/asm/spram.h	2010-10-20 23:30:22.000000000 +0300
-+++ vr300-linux/arch/mips/include/asm/spram.h	2019-03-07 03:40:17.000000000 +0200
-@@ -7,4 +7,8 @@
- static inline void spram_config(void) { };
- #endif /* CONFIG_CPU_MIPSR2 */
- 
-+extern int is_sram_addr(void *p);
-+extern void *alloc_sram(int n);
-+extern void free_sram(void *p, int n);
-+
- #endif /* _MIPS_SPRAM_H */
 Only in vr300-linux/arch/mips/include/asm: tc3162
 diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/include/asm/thread_info.h vr300-linux/arch/mips/include/asm/thread_info.h
 --- linux-2.6.36/arch/mips/include/asm/thread_info.h	2010-10-20 23:30:22.000000000 +0300
@@ -235,7 +223,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  obj-$(CONFIG_CPU_R5000)		+= r4k_fpu.o r4k_switch.o
 diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c vr300-linux/arch/mips/kernel/mips-mt-fpaff.c
 --- linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c	2010-10-20 23:30:22.000000000 +0300
-+++ vr300-linux/arch/mips/kernel/mips-mt-fpaff.c	2019-03-07 03:40:15.000000000 +0200
++++ vr300-linux/arch/mips/kernel/mips-mt-fpaff.c	2021-12-10 03:11:27.266096318 +0200
 @@ -73,6 +73,28 @@
  	if (copy_from_user(&new_mask, user_mask_ptr, sizeof(new_mask)))
  		return -EFAULT;
@@ -301,27 +289,6 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  
  	EXCEPTION_TABLE(16)
  
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/mm/c-r4k.c vr300-linux/arch/mips/mm/c-r4k.c
---- linux-2.6.36/arch/mips/mm/c-r4k.c	2010-10-20 23:30:22.000000000 +0300
-+++ vr300-linux/arch/mips/mm/c-r4k.c	2019-03-07 03:40:15.000000000 +0200
-@@ -595,7 +595,7 @@
- 
- #ifdef CONFIG_DMA_NONCOHERENT
- 
--static void r4k_dma_cache_wback_inv(unsigned long addr, unsigned long size)
-+__IMEM static void r4k_dma_cache_wback_inv(unsigned long addr, unsigned long size)
- {
- 	/* Catch bad driver code */
- 	BUG_ON(size == 0);
-@@ -623,7 +623,7 @@
- 	bc_wback_inv(addr, size);
- }
- 
--static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
-+__IMEM static void r4k_dma_cache_inv(unsigned long addr, unsigned long size)
- {
- 	/* Catch bad driver code */
- 	BUG_ON(size == 0);
 Only in vr300-linux/arch/mips/mm: c-tc3162.c
 diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/mm/Makefile vr300-linux/arch/mips/mm/Makefile
 --- linux-2.6.36/arch/mips/mm/Makefile	2010-10-20 23:30:22.000000000 +0300
