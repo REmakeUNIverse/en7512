@@ -57,8 +57,8 @@ arch/mips/include/asm/pgtable-32.h - rollback
  added to linux5.
 
 arch/mips/include/asm/pgtable-bits.h - rollback, ignored
- TC3162 is not required build flag for EN7512. And the structure
- changed so I do not know what to add this.
+ TC3162 is not required build flag for EN7512. And structure
+ changed so I do not know where to add this.
 
 arch/mips/include/asm/pgtable.h - rollback, ignored
  TC3162.
@@ -95,7 +95,7 @@ arch/mips/kernel/mips-mt.c - rollback, partially
  I did not set tclimit = 4.
 
 arch/mips/kernel/spram.c - rollback, ignore
- See IMEM. Will turn off CONFIG_MIPS_SPRAM.
+ See IMEM. TODO: turn off CONFIG_MIPS_SPRAM.
 
 arch/mips/Kbuild - rollback, ignore
 
@@ -112,3 +112,15 @@ arch/mips/include/asm/spram.h - rollback, ignore
 
 arch/mips/mm/c-r4k.c - rollback, ignore
  __IMEM optimisations.
+
+arch/mips/kernel/Makefile - rollback, ignore
+ TC3162.
+
+arch/mips/mm/Makefile - rollback, ignore
+ TC3162.
+
+arch/mips/kernel/asm-offsets.s - new-file, ignore, diff-ignore
+ It was generated from asm-offsets.c.
+
+arch/mips/mm/c-tc3162.c - new-file, ignore, diff-ignore
+ TC3162.

@@ -3,16 +3,12 @@ Only in vr300-linux/arch/mips/include/asm: tc3162
 Files linux-2.6.36/arch/mips/include/asm/thread_info.h and vr300-linux/arch/mips/include/asm/thread_info.h differ
 Files linux-2.6.36/arch/mips/Kbuild.platforms and vr300-linux/arch/mips/Kbuild.platforms differ
 Files linux-2.6.36/arch/mips/Kconfig and vr300-linux/arch/mips/Kconfig differ
-Only in vr300-linux/arch/mips/kernel: asm-offsets.s
 Files linux-2.6.36/arch/mips/kernel/cpu-probe.c and vr300-linux/arch/mips/kernel/cpu-probe.c differ
 Files linux-2.6.36/arch/mips/kernel/csrc-r4k.c and vr300-linux/arch/mips/kernel/csrc-r4k.c differ
 Files linux-2.6.36/arch/mips/kernel/entry.S and vr300-linux/arch/mips/kernel/entry.S differ
 Files linux-2.6.36/arch/mips/kernel/genex.S and vr300-linux/arch/mips/kernel/genex.S differ
-Files linux-2.6.36/arch/mips/kernel/Makefile and vr300-linux/arch/mips/kernel/Makefile differ
 Files linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c and vr300-linux/arch/mips/kernel/mips-mt-fpaff.c differ
 Files linux-2.6.36/arch/mips/kernel/vmlinux.lds.S and vr300-linux/arch/mips/kernel/vmlinux.lds.S differ
-Only in vr300-linux/arch/mips/mm: c-tc3162.c
-Files linux-2.6.36/arch/mips/mm/Makefile and vr300-linux/arch/mips/mm/Makefile differ
 Only in vr300-linux/arch/mips/pci: fixup-tc3162.c
 Only in vr300-linux/arch/mips/pci: fixup-tc3162u.c
 Files linux-2.6.36/arch/mips/pci/Makefile and vr300-linux/arch/mips/pci/Makefile differ

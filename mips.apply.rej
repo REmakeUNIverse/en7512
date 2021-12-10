@@ -82,23 +82,3 @@
  source "lib/Kconfig"
 +
 +source "pwModel/Kconfig"
---- arch/mips/kernel/Makefile	2010-10-20 23:30:22.000000000 +0300
-+++ arch/mips/kernel/Makefile	2019-03-07 03:40:15.000000000 +0200
-@@ -36,6 +36,7 @@
- obj-$(CONFIG_CPU_MIPS32)	+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_MIPS64)	+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_R3000)		+= r2300_fpu.o r2300_switch.o
-+obj-$(CONFIG_CPU_TC3162)	+= r2300_fpu.o r2300_switch.o
- obj-$(CONFIG_CPU_R4300)		+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_R4X00)		+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_R5000)		+= r4k_fpu.o r4k_switch.o
---- arch/mips/mm/Makefile	2010-10-20 23:30:22.000000000 +0300
-+++ arch/mips/mm/Makefile	2019-03-07 03:40:15.000000000 +0200
-@@ -16,6 +16,7 @@
- obj-$(CONFIG_CPU_NEVADA)	+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R10000)	+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R3000)		+= c-r3k.o tlb-r3k.o
-+obj-$(CONFIG_CPU_TC3162)	+= c-tc3162.o tlb-r3k.o pg-r4k.o
- obj-$(CONFIG_CPU_R4300)		+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R4X00)		+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R5000)		+= c-r4k.o cex-gen.o tlb-r4k.o

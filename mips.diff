@@ -1,4 +1,4 @@
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/include/asm/cpu.h vr300-linux/arch/mips/include/asm/cpu.h
+diff -ur
 --- linux-2.6.36/arch/mips/include/asm/cpu.h	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/include/asm/cpu.h	2019-03-07 03:40:17.000000000 +0200
 @@ -72,6 +72,8 @@
@@ -11,7 +11,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  
  /*
 Only in vr300-linux/arch/mips/include/asm: tc3162
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/include/asm/thread_info.h vr300-linux/arch/mips/include/asm/thread_info.h
+diff -ur
 --- linux-2.6.36/arch/mips/include/asm/thread_info.h	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/include/asm/thread_info.h	2021-12-10 01:44:56.979644988 +0200
 @@ -62,8 +62,12 @@
@@ -27,7 +27,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  #if defined(CONFIG_PAGE_SIZE_4KB) && defined(CONFIG_64BIT)
  #define THREAD_SIZE_ORDER (2)
  #endif
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/Kbuild.platforms vr300-linux/arch/mips/Kbuild.platforms
+diff -ur
 --- linux-2.6.36/arch/mips/Kbuild.platforms	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/Kbuild.platforms	2021-12-10 02:07:20.506003560 +0200
 @@ -18,6 +18,7 @@
@@ -38,7 +38,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  platforms += rb532
  platforms += sgi-ip22
  platforms += sgi-ip27
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/Kconfig vr300-linux/arch/mips/Kconfig
+diff -ur
 --- linux-2.6.36/arch/mips/Kconfig	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/Kconfig	2019-03-07 03:40:18.000000000 +0200
 @@ -252,6 +252,65 @@
@@ -146,8 +146,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  source "lib/Kconfig"
 +
 +source "pwModel/Kconfig"
-Only in vr300-linux/arch/mips/kernel: asm-offsets.s
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/cpu-probe.c vr300-linux/arch/mips/kernel/cpu-probe.c
+diff -ur
 --- linux-2.6.36/arch/mips/kernel/cpu-probe.c	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/kernel/cpu-probe.c	2021-12-06 09:21:25.378872572 +0200
 @@ -356,6 +356,13 @@
@@ -164,7 +163,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  	case PRID_IMP_R4000:
  		if (read_c0_config() & CONF_SC) {
  			if ((c->processor_id & 0xff) >= PRID_REV_R4400) {
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/csrc-r4k.c vr300-linux/arch/mips/kernel/csrc-r4k.c
+diff -ur
 --- linux-2.6.36/arch/mips/kernel/csrc-r4k.c	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/kernel/csrc-r4k.c	2019-03-07 03:40:15.000000000 +0200
 @@ -15,7 +15,8 @@
@@ -177,7 +176,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  	.name		= "MIPS",
  	.read		= c0_hpt_read,
  	.mask		= CLOCKSOURCE_MASK(32),
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/entry.S vr300-linux/arch/mips/kernel/entry.S
+diff -ur
 --- linux-2.6.36/arch/mips/kernel/entry.S	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/kernel/entry.S	2019-03-07 03:40:15.000000000 +0200
 @@ -123,7 +123,7 @@
@@ -189,7 +188,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  	and	v0, ST0_IEP
  #else
  	and	v0, ST0_IE
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/genex.S vr300-linux/arch/mips/kernel/genex.S
+diff -ur
 --- linux-2.6.36/arch/mips/kernel/genex.S	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/kernel/genex.S	2021-12-06 12:04:59.842775420 +0200
 @@ -178,7 +178,7 @@
@@ -210,18 +209,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  	ori	k1, _THREAD_MASK
  	xori	k1, _THREAD_MASK
  	LONG_L	v1, TI_TP_VALUE(k1)
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/Makefile vr300-linux/arch/mips/kernel/Makefile
---- linux-2.6.36/arch/mips/kernel/Makefile	2010-10-20 23:30:22.000000000 +0300
-+++ vr300-linux/arch/mips/kernel/Makefile	2019-03-07 03:40:15.000000000 +0200
-@@ -36,6 +36,7 @@
- obj-$(CONFIG_CPU_MIPS32)	+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_MIPS64)	+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_R3000)		+= r2300_fpu.o r2300_switch.o
-+obj-$(CONFIG_CPU_TC3162)	+= r2300_fpu.o r2300_switch.o
- obj-$(CONFIG_CPU_R4300)		+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_R4X00)		+= r4k_fpu.o r4k_switch.o
- obj-$(CONFIG_CPU_R5000)		+= r4k_fpu.o r4k_switch.o
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c vr300-linux/arch/mips/kernel/mips-mt-fpaff.c
+diff -ur
 --- linux-2.6.36/arch/mips/kernel/mips-mt-fpaff.c	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/kernel/mips-mt-fpaff.c	2021-12-10 03:11:27.266096318 +0200
 @@ -73,6 +73,28 @@
@@ -253,7 +241,7 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  	get_online_cpus();
  	rcu_read_lock();
  
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/kernel/vmlinux.lds.S vr300-linux/arch/mips/kernel/vmlinux.lds.S
+diff -ur
 --- linux-2.6.36/arch/mips/kernel/vmlinux.lds.S	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/kernel/vmlinux.lds.S	2019-03-07 03:40:15.000000000 +0200
 @@ -4,6 +4,10 @@
@@ -289,21 +277,9 @@ diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '
  
  	EXCEPTION_TABLE(16)
  
-Only in vr300-linux/arch/mips/mm: c-tc3162.c
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/mm/Makefile vr300-linux/arch/mips/mm/Makefile
---- linux-2.6.36/arch/mips/mm/Makefile	2010-10-20 23:30:22.000000000 +0300
-+++ vr300-linux/arch/mips/mm/Makefile	2019-03-07 03:40:15.000000000 +0200
-@@ -16,6 +16,7 @@
- obj-$(CONFIG_CPU_NEVADA)	+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R10000)	+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R3000)		+= c-r3k.o tlb-r3k.o
-+obj-$(CONFIG_CPU_TC3162)	+= c-tc3162.o tlb-r3k.o pg-r4k.o
- obj-$(CONFIG_CPU_R4300)		+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R4X00)		+= c-r4k.o cex-gen.o tlb-r4k.o
- obj-$(CONFIG_CPU_R5000)		+= c-r4k.o cex-gen.o tlb-r4k.o
 Only in vr300-linux/arch/mips/pci: fixup-tc3162.c
 Only in vr300-linux/arch/mips/pci: fixup-tc3162u.c
-diff -r -I '$Id:' -I '$Header' -I '$Revision' -I printk -I VERSION -I '^\*' -x '*.lds' -x '*.order' -x '*.builtin' -x '*.a' -x '*.d' -x '*.o' -x '*.cmd' -x '*.ko' -x '*.[chS]~' -x cevt-smtc.c -x smtc.c -x '*ecnt*' -x pci-7512api.c -x softfloat -x '*usb*' -x '*ralink*' -x .gitignore -ur linux-2.6.36/arch/mips/pci/Makefile vr300-linux/arch/mips/pci/Makefile
+diff -ur
 --- linux-2.6.36/arch/mips/pci/Makefile	2010-10-20 23:30:22.000000000 +0300
 +++ vr300-linux/arch/mips/pci/Makefile	2019-03-07 03:40:15.000000000 +0200
 @@ -19,6 +19,18 @@

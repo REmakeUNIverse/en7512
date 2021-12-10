@@ -11,7 +11,7 @@ args=(-r
       # Editor files.
       -x '*.[chS]~'
       # SMTC was removed from linux.
-      -x 'cevt-smtc.c' -x 'smtc.c'
+      -x cevt-smtc.c -x smtc.c
       # No ecnt. ecnt looks like an API.
       -x '*ecnt*' -x pci-7512api.c
       # Will try linux softfloat first.
@@ -20,13 +20,16 @@ args=(-r
       -x '*usb*'
       # There is ralink already.
       -x '*ralink*'
-      -x '.gitignore'
+      -x .gitignore
+      # See mips.notes new-file
+      -x asm-offsets.s -x c-tc3162.c
       linux-2.6.36/"$1" vr300-linux/"$1")
 
 # bash diff drivers -u
 # To include new files: bash diff drivers -uN
 # Files only: bash diff drivers -q
-diff "${args[@]}" ${@:2}
+diff "${args[@]}" ${@:2} | \
+    sed "s/^diff.*/diff ${@:2}/" `# do not reflect change of args in diff output.`
 
 # cd linux-3.9
 # patch -p1 -o tmp/apply < ../mips.diff-full
