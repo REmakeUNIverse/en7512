@@ -10,7 +10,7 @@ An attempt at upgrading this code, the part of it required for EN7512, to linux5
 * mips.notes - notes, why certain files or changes were not included.
 * mips5.diff - linux5 arch/mips diff.
 
-To apply the patch to linux5 and view rejects:
+To view rejects:
 ```
 cd linux5
 mkdir tmp
@@ -27,11 +27,11 @@ I did not find datasheet for EN7512.
 
 MT7620 (ralink_mt7620.pdf) ethernet MAC registers and values look similar (did not compare all) to values from bootloader EN7512 ethernet driver (bootloader-en7512-net-src directory).
 
-WiFi in my router: https://www.mediatek.com/products/broadbandWifi/mt7603e
-- from myrouter/lsmod.txt, mt7603eap module. Upstream linux driver: drivers/net/wireless/mediatek/mt76/mt7603/Kconfig
-
 My router - Innbox80, PCB photos and some of the serial output: https://saturn.ffzg.hr/rot13/index.cgi?action=display_html;page_name=innbox_v80
 tftp and ssh access can be enabled from Administrator user. The `myrouter` directory contains some files from /proc/. I've also made a copy of /dev/mtdblock*, see tftp.txt. The version of linux is 3.1, while VR300 version is 2.6.
+
+WiFi: https://www.mediatek.com/products/broadbandWifi/mt7603e
+- from myrouter/lsmod.txt, mt7603eap module. Upstream linux driver: drivers/net/wireless/mediatek/mt76/mt7603/Kconfig
 
 mediatek-linux-sdk-release-notes.pdf - firmware uploading.
 

@@ -6,19 +6,19 @@ drivers/mtd/chips/spi_controller.c - new-file, flash-diff
 drivers/mtd/chips/spi_nand_flash.h - new-file, flash-diff
 
 drivers/mtd/chips/spi_nand_flash.c - new-file, flash-diff
- EN7512 handler, loads only if IS_NANDFLASH. The handler adds:
+ EN7512, loads only if IS_NANDFLASH. The driver adds:
   /proc/driver/spi_nand_debug.
 
 drivers/mtd/chips/newspiflash.c - new-file, ignore
- EN7512 is used for some chips, if IS_SPIFLASH.
+ EN7512 if IS_SPIFLASH.
 
 drivers/mtd/ralink/bmt.c - new-file, flash-diff
  EN7512.
 
 drivers/mtd/maps/tc3162-flash.c - new-file, flash-diff
  Initialize map_info. mtd#do_map_probe initializes
- spi_nand_flash module, adds mtd partitions, will set ROOT_DEV
- (tc3162_put_rootfs) depending on value in FLAG_ADDR,
+ spi_nand_flash mtd_chip_driver, adds mtd partitions, will
+ set ROOT_DEV (tc3162_put_rootfs) depending on value in FLAG_ADDR,
  to rootfs/rootfs_slave.
 
  From userfs/profile.cfg, TCSUPPORT_ADDR_MAPPING is off,
