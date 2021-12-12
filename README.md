@@ -38,3 +38,46 @@ mediatek-linux-sdk-release-notes.pdf - firmware uploading.
 Some SoC specs (see EcoNet): https://wikidevi.wi-cat.ru/MediaTek
 
 TC3162u: https://web.archive.org/web/20140319175335/http://www.mediatek.com/en/products/connectivity/xdsl/adsl-wifi/tc3162u/
+
+### Bootloader
+Bootloader sources: mtk/bootrom.
+
+Emacs modes for hiding {} blocks (hs-minor-mode), for hiding ifdefs (hide-ifdef-mode), will be helpfull. The sources include SPI and NAND code, 7512 ethernet code, even leds (light diods) IO configs.
+
+Disclaimer: I did not test this.
+
+Bootloader may support `jump addr` command. The command will call function (jump to) at addr. tftp will save file to `TFTP_BUF_BASE`: 0x80020000 addr. (net/tftpput.c).
+
+`flash dst src len` command will call `flash_write(dst, len, &retlen, (const unsigned char *) (src))` src should be set to `TFT_BUF_BASE`. dst.. go figure.
+
+On power-up, bootloader calls boot_kernel (init/main.c) which loads image, performs tests and jumps to loaded kernel memory address.
+First, the `trx_header` (mtk/tools/trx/trx.h) struct len, magic, crc32 will be read from flash and compared. `tx_header` address: `flash_base + flash_tclinux_start`. The variables set in flash/flashhal.c, in `*_init` functions. 0x0 + 0x40000 * 2 if `IS_NANDFLASH and TCSUPPORT_BB_NAND`, flash command dst will be 0x80000.
+
+```
+$ head -9 myrouter/proc/mtd
+dev:    size   erasesize  name
+mtd0: 00040000 00020000 "bootloader"
+mtd1: 00040000 00020000 "romfile"
+mtd2: 003cadc3 00020000 "kernel"
+mtd3: 010b0000 00020000 "rootfs"
+mtd4: 02800000 00020000 "tclinux"
+mtd5: 003cadc3 00020000 "kernel_slave"
+mtd6: 010b0000 00020000 "rootfs_slave"
+mtd7: 02800000 00020000 "tclinux_slave"
+```
+
+linux/drivers/mtd/maps/tc3162-flash.c adds mtd partitions and trx header is used to set kernel and rootfs offsets, see `tc3162_set_kernel_rootfs_part`.
+
+If `CONFIG_DUAL_IMAGE = y` and `TCSUPPORT_NAND_BADBLOCK_CHECK` is not set:
+
+If trx->decompAddr is zero, 0x80020000 will be used as `output` RAM address.
+
+I think it is tp-link specific: google "en751221 the tag fsLen" shows only tp-link entries. But in this case, bootloader will ignore trx values and load `LINUX_FILE_TAG` structure defined in bootloader src include/asm/tc3162.h.
+
+`set_lzma_addr(...`, `decompress_kernel(output, ...` and jump, supposedly, to `output`.
+
+Trx header utils
+
+* https://github.com/vasvir/tcrevenge
+* mtk/tools/trx directory
+* https://openwrt.org/docs/techref/brcm63xx.imagetag
