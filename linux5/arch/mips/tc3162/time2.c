@@ -52,11 +52,6 @@ static const unsigned int cputmr_cmr[] = {CR_CPUTMR_CMR0, CR_CPUTMR_CMR1};
 
 static int vpe1_timer_installed = 0;
 
-#ifdef TCSUPPORT_BONDING
-unsigned long int bondaddr;
-EXPORT_SYMBOL(bondaddr);
-static char tag;
-#endif
 #ifdef CONFIG_PCI
 extern int pcieRegInitConfig(void);
 extern void pcieReset(void);
@@ -450,20 +445,6 @@ static void cputmr_timer_ack(void)
 
 	/* update CR_CPUTMR_CMR */
 	regWrite32(cputmr_cmr[vpe], expirelo[vpe]);
-
-#ifdef TCSUPPORT_BONDING
-	if (isMT751020) {
-		if(bondaddr != 0) {
-            if(tag==0) {
-                tag = 1;
-                regWrite32(bondaddr, 1);
-            }else {
-                tag = 0;
-                regWrite32(bondaddr, 0);
-            }
-		}
-	}
-#endif
 }
 
 void __init tc3162_time_init(void)
