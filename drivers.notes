@@ -1,18 +1,14 @@
-drivers/mtd/chips/spi_controller.h - new-file, flash-diff
-
-drivers/mtd/chips/spi_controller.c - new-file, flash-diff
+drivers/mtd/chips/spi_controller.c - new-file
  The SPI driver used by spi_nand_flash.c.
 
-drivers/mtd/chips/spi_nand_flash.h - new-file, flash-diff
-
-drivers/mtd/chips/spi_nand_flash.c - new-file, flash-diff
+drivers/mtd/chips/spi_nand_flash.c - new-file
  EN7512, loads only if IS_NANDFLASH. The driver adds:
   /proc/driver/spi_nand_debug.
 
 drivers/mtd/chips/newspiflash.c - new-file, ignore
  EN7512 if IS_SPIFLASH.
 
-drivers/mtd/maps/tc3162-flash.c - new-file, flash-diff
+drivers/mtd/maps/tc3162-flash.c - new-file
  Initialize map_info. mtd#do_map_probe initializes
  spi_nand_flash mtd_chip_driver, adds mtd partitions, will
  set ROOT_DEV (tc3162_put_rootfs) depending on value in FLAG_ADDR,

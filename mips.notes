@@ -1,6 +1,6 @@
 arch/mips/include/asm/irq.h - rollback
 arch/mips/kernel/irq.c - rollback
- removes __IMEM prefix from do_IRQ.
+ Removed __IMEM prefix from do_IRQ.
  It is preformance optimisation. For the moment, to simplify,
  I will disable SPRAM: TC3162_IMEM, TC3162_DMEM config defs.
  __IMEM is optional, from include/linux/kernel.h:
@@ -23,25 +23,25 @@ arch/mips/include/asm/processor.h - rollback
  XPON related.
 
 arch/mips/include/asm/time.h - rollback
- those two defs used only in mips/ralink. The mips_timer_ack is
- also used in cevt-smtc, but SMTC support was dropped.
- Also in cevt-r4k. TODO mips_timer_ack.
+ SMTC is not supported anymore.
+ TODO: mips_timer_ack in cevt-r4k.
 
 arch/mips/kernel/time.c - rollback
- it was #if 0.
+ Delete #if 0.
 
 arch/mips/kernel/cpu-probe.c - partially
- move cpu_wait_en7512 to /mips/kernel/idle.c of linux5.
+ Move cpu_wait_en7512 to linux5/arch/mips/kernel/idle.c.
 
 arch/mips/kernel/cevt-r4k.c - rollback
  TODO mips_timer_ack.
 
 arch/mips/kernel/traps.c - rollback
  show_stack_nmi - called from ralink/tcwdog.c. Linux5 defines
- nmi_exception_handler. Everything else was SMTC, XPON related.
+ nmi_exception_handler already. Everything else was SMTC, XPON
+ related.
 
 arch/mips/kernel/genex.S - partially
- removes irrelevant CONFIG_MIPS_TC3262 under #ifdef SMTC.
+ Delete irrelevant CONFIG_MIPS_TC3262 under #ifdef SMTC.
 
 arch/mips/include/asm/io.h - rollback, ignored
  TCSUPPORT_MT7510_E1 is not in build flags for EN7512.
@@ -51,10 +51,10 @@ arch/mips/include/asm/mach-generic/mangle-port.h - rollback
  TODO: Turn off SWAP_IO_SPACE from Kconfig.
 
 arch/mips/include/asm/mipsregs.h - rollback
- added to linux5.
+ Added to linux5.
 
 arch/mips/include/asm/pgtable-32.h - rollback
- added to linux5.
+ Added to linux5.
 
 arch/mips/include/asm/pgtable-bits.h - rollback, ignored
  TC3162 is not required build flag for EN7512. And structure
@@ -73,9 +73,8 @@ arch/mips/include/asm/string.h - rollback, ignored
   alloc_thread_info is not defined in linux5. Why:
   http://lkml.iu.edu/hypermail//linux/kernel/1205.1/00234.html
   http://lkml.iu.edu/hypermail//linux/kernel/1205.1/00227.html
-  MT introduced two changes:
-  1. #define THREAD_SIZE_ORDER (2)
-  2. #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
+
+  #define alloc_thread_info(tsk) kzalloc(THREAD_SIZE, GFP_KERNEL)
   kzalloc is kmalloc but will fill zeros. Why do this?
   alloc_thread_info is called from kernel/fork.c, diff:
   static inline struct thread_info *alloc_thread_info(struct task_struct *tsk)
@@ -86,10 +85,10 @@ arch/mips/include/asm/string.h - rollback, ignored
  #else
 
  __GFP_ZERO means fill zeros.
- So may be this done for debugging.
+ So may be for debugging.
 
 arch/mips/kernel/mips-mt.c - rollback, partially
- added to linux5.
+ Added to linux5.
  I ignored mips_mt_regdump_nmi since it is not used anywehre
  in arch/mips.
  I did not set tclimit = 4.
@@ -100,7 +99,7 @@ arch/mips/kernel/spram.c - rollback, ignore
 arch/mips/Kbuild - rollback, ignore
 
 arch/mips/kernel/smp-mt.c - rollback
- add to linux5.
+ Add to linux5.
 
 arch/mips/kernel/vpe.c - rollback, ignore
 
@@ -124,3 +123,20 @@ arch/mips/kernel/asm-offsets.s - new-file, ignore, diff-ignore
 
 arch/mips/mm/c-tc3162.c - new-file, ignore, diff-ignore
  TC3162.
+
+arch/mips/pci/pci-tc3162u.c - new-file
+ Hidding some of the ifdef blocks may help:
+  unifdef -UTCSUPPORT_RT63368_PCIE_RECOVER -UTCSUPPORT_WLAN_MT7592_PCIE -UTCSUPPORT_BONDING pci-tc3162u.c
+
+ The driver calls register_pci_controller from pci-legacy, so
+ CONFIG_PCI_DRIVERS_LEGACY should be set.
+
+ Turn off TCSUPPORT_WLAN_MT7592_PCIE and TCSUPPORT_BONDING since I
+ do not know if this will work with free WiFi driver.
+
+ pcie_init() is not called anywhere. pcieRegInitConfig is not
+ called if EN75*.
+
+arch/mips/ralink - new-files
+ Moved to linux5/arch/mips/tc3162.
+
