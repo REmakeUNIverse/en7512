@@ -85,7 +85,7 @@
 #include <linux/scatterlist.h>
 
 
-#include "../ralink/bmt.h"
+#include "../tc3162//bmt.h"
 
 
 /* Added for TCM used */
@@ -94,13 +94,8 @@
 #include <linux/mtd/map.h>
 #include <asm/tc3162/tc3162.h>
 
-#if defined (TCSUPPORT_GPON_DUAL_IMAGE) || defined (TCSUPPORT_EPON_DUAL_IMAGE)
-#include "../../../../apps/public/mtd/tc_partition.h"
-#endif
-
 #ifdef TCSUPPORT_NAND_BMT
 #define POOL_GOOD_BLOCK_PERCENT 8/100
-#define SLAVE_IMAGE_OFFSET 0xf00000
 extern int nand_logic_size;
 #endif
 
@@ -116,9 +111,6 @@ struct spi_chip_info {
 	u32 (*write)(struct mtd_info *mtd, u32 from, u32 to, u32 size);
 	u32 (*erase)(struct mtd_info *mtd, u32 addr);
 };
-
-extern unsigned int (*ranand_read_byte)(unsigned long long);
-extern unsigned int (*ranand_read_dword)(unsigned long long);
 
 
 /* NAMING CONSTANT DECLARATIONS ------------------------------------------------------ */
@@ -2868,16 +2860,10 @@ static SPI_NAND_FLASH_RTN_T spi_nand_probe( struct SPI_NAND_FLASH_INFO_T * ptr_r
 
 /* EXPORTED SUBPROGRAM BODIES -------------------------------------------------------- */
 
-
-u32 reservearea_size = 0;
-
 #if	defined(TCSUPPORT_NAND_BMT) && !defined(LZMA_IMG)
 #define BMT_BAD_BLOCK_INDEX_OFFSET (1)
 #define POOL_GOOD_BLOCK_PERCENT 8/100
 #define MAX_BMT_SIZE_PERCENTAGE 1/10
-
-extern int nand_flash_avalable_size;
-
 
 int en7512_nand_exec_read_page(u32 page, u8* date, u8* oob)
 {
@@ -3043,16 +3029,6 @@ int calc_bmt_pool_size(struct mtd_info *mtd)
 	_SPI_NAND_PRINTF("calc_bmt_pool_size : need_valid_block_num=0x%x, total_block=0x%x\n",need_valid_block_num, total_block);
 
 	maximum_bmt_block_count = total_block * MAX_BMT_SIZE_PERCENTAGE;
-
-#if defined(TCSUPPORT_CT_PON)
-	maximum_bmt_block_count = BMT_SIZE_FOR_RESERVE_AREA;
-
-	if( need_valid_block_num > BMT_SIZE_FOR_RESERVE_AREA)
-	{
-		need_valid_block_num = BMT_SIZE_FOR_RESERVE_AREA;
-	}
-#endif
-
 
     for(;last_block > 0; --last_block)
     {
@@ -4477,20 +4453,9 @@ static int spi_nand_setup(u32 *ptr_rtn_mtd_address)
 
 				_SPI_NAND_SEMAPHORE_UNLOCK();
 
-#ifdef TCSUPPORT_CT_PON
-			    	nand_flash_avalable_size = chip->chipsize - (BMT_SIZE_FOR_RESERVE_AREA * 0x20000);
-					mtd->size = chip->chipsize - (BMT_SIZE_FOR_RESERVE_AREA * 0x20000);
-#else
 
 	mtd->size = nand_logic_size;
 #endif
-
-
-#endif
-	ranand_read_byte  = SPI_NAND_Flash_Read_Byte;
-	ranand_read_dword = SPI_NAND_Flash_Read_DWord;
-
-
 	*ptr_rtn_mtd_address = mtd;
 
 	return 0;
