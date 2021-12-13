@@ -12,9 +12,6 @@ drivers/mtd/chips/spi_nand_flash.c - new-file, flash-diff
 drivers/mtd/chips/newspiflash.c - new-file, ignore
  EN7512 if IS_SPIFLASH.
 
-drivers/mtd/ralink/bmt.c - new-file, flash-diff
- EN7512.
-
 drivers/mtd/maps/tc3162-flash.c - new-file, flash-diff
  Initialize map_info. mtd#do_map_probe initializes
  spi_nand_flash mtd_chip_driver, adds mtd partitions, will
@@ -23,3 +20,9 @@ drivers/mtd/maps/tc3162-flash.c - new-file, flash-diff
 
  From userfs/profile.cfg, TCSUPPORT_ADDR_MAPPING is off,
    TCSUPPORT_NAND_BADBLOCK_CHECK is off.
+
+drivers/mtd/ralink/bmt.h - new-file, ignore
+drivers/mtd/ralink/bmt.c - new-file, ignore
+ bmt.* is now in mtd/tc3162 directory of linux5.
+
+drivers/mtd/ralink/* - new-file, ignore

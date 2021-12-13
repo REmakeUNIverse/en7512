@@ -1,17 +1,13 @@
 #ifndef __BMT_H__
 #define __BMT_H__
 
-#if	defined(TCSUPPORT_CPU_MT7510)||defined(TCSUPPORT_CPU_MT7520)
+#if defined(TCSUPPORT_CPU_MT7510) || defined(TCSUPPORT_CPU_MT7520)
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include "../mtk/mt6573_nand.h"
-
+#elif defined(TCSUPPORT_CPU_EN7512) || defined(TCSUPPORT_CPU_EN7521)
 #else
 #include "ralink_nand.h"
-
-#define bool     u8
-#define true     1
-#define false    0
 #endif
 
 #define MAX_RAW_BAD_BLOCK_SIZE  (1000)
@@ -21,7 +17,7 @@
 #define BAD_BLOCK_RAW (0)
 #define BMT_BADBLOCK_GENERATE_LATER (1)
 
-#if defined(TCSUPPORT_CPU_EN7512)||defined(TCSUPPORT_CPU_EN7521)
+#if defined(TCSUPPORT_CPU_EN7512) || defined(TCSUPPORT_CPU_EN7521)
 #define MAX_BMT_SIZE                  (500)
 #define BMT_SIZE_FOR_RESERVE_AREA     (0x80)
 #else
@@ -65,7 +61,7 @@ typedef struct {
 typedef struct {
     u16 badblock_table[MAX_RAW_BAD_BLOCK_SIZE];  //store bad block raw
     u8 version;
-    u8 badblock_count; 
+    u8 badblock_count;
     u8 reserved[2];
 }init_bbt_struct;
 
@@ -74,12 +70,14 @@ typedef struct {
 * Interface BMT need to use                                    *
 *                                                              *
 ***************************************************************/
-#if	defined(TCSUPPORT_CPU_MT7510)||defined(TCSUPPORT_CPU_MT7520)
+#if defined(TCSUPPORT_CPU_MT7510) || defined(TCSUPPORT_CPU_MT7520)
 extern int mt6573_nand_exec_read_page(struct mtd_info *mtd, u32 u4RowAddr, u32 u4PageSize, u8* pPageBuf, u8* pFDMBuf);
 extern int mt6573_nand_block_bad_hw(struct mtd_info *mtd, loff_t ofs, u32 bmt_block);
 extern int mt6573_nand_erase_hw(struct mtd_info *mtd, int page);
 extern int mt6573_nand_block_markbad_hw(struct mtd_info *mtd, loff_t offset, u32 bmt_block);
 extern int mt6573_nand_exec_write_page(struct mtd_info *mtd, u32 u4RowAddr, u32 u4PageSize, u8* pPageBuf, u8* pFDMBuf);
+
+#elif defined(TCSUPPORT_CPU_EN7512) || defined(TCSUPPORT_CPU_EN7521)
 
 #else
 extern int mt6573_nand_exec_read_page(struct ra_nand_chip *ra, int page, u32 page_size, u8 *dat, u8 *oob);
@@ -94,7 +92,7 @@ extern int mt6573_nand_exec_write_page(struct ra_nand_chip *ra, int page, u32 pa
 *                                           *
 ********************************************/
 extern void set_bad_index_to_oob(u8 *oob, u16 index);
-#if defined(TCSUPPORT_CPU_EN7512)||defined(TCSUPPORT_CPU_EN7521)
+#if defined(TCSUPPORT_CPU_EN7512) || defined(TCSUPPORT_CPU_EN7521)
 bmt_struct *init_bmt(struct mtd_info *mtd, int size);
 #else
 #if	defined(TCSUPPORT_CPU_MT7510)||defined(TCSUPPORT_CPU_MT7520)

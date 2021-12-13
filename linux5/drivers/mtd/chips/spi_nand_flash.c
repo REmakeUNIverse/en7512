@@ -85,7 +85,7 @@
 #include <linux/scatterlist.h>
 
 
-#include "../tc3162//bmt.h"
+#include "../tc3162/bmt.h"
 
 
 /* Added for TCM used */
@@ -243,9 +243,7 @@ static DEFINE_SPINLOCK(spinandLock);
 #define _SPI_NAND_READ_CHIP_SELECT_LOW		SPI_CONTROLLER_Chip_Select_Low
 
 
-struct ra_nand_chip ra;
-struct nand_info flashInfo;
-unsigned char _plane_select_bit=0;
+unsigned char _plane_select_bit = 0;
 
 
 /* TYPE DECLARATIONS ----------------------------------------------------------------- */
@@ -3384,19 +3382,6 @@ void SPI_NAND_Flash_Clear_Read_Cache_Data( void )
 /***********************************************************************************/
 /***********************************************************************************/
 /***********************************************************************************/
-
-
-/* NAND driver */
-int __devinit ra_nand_init(void)
-{
-	return 0;
-}
-
-void __devinit ra_nand_remove(void)
-{
-
-}
-
 
 /*****************************************************************************************/
 /*****************************************************************************************/
