@@ -68,14 +68,14 @@ static void delay1ms(int ms)
 	volatile uint32 timer_now, timer_last;
 	volatile uint32 tick_acc;
 	uint32 one_tick_unit = SYS_HCLK * 500;//1 * SYS_HCLK * 1000 / 2
-	volatile uint32 tick_wait = ms * one_tick_unit; 
+	volatile uint32 tick_wait = ms * one_tick_unit;
 	volatile uint32 timer1_ldv = regRead32(CR_TIMER1_LDV);
 
 	tick_acc = 0;
 	timer_last = regRead32(CR_TIMER1_VLR);
 	do {
 		timer_now = regRead32(CR_TIMER1_VLR);
-	  	if (timer_last >= timer_now) 
+	  	if (timer_last >= timer_now)
 	  		tick_acc += timer_last - timer_now;
 		else
 			tick_acc += timer1_ldv - timer_now + timer_last;
@@ -117,9 +117,9 @@ EXPORT_SYMBOL(delay1us);
 
 void
 timer_Configure(
-	uint8  timer_no, 
-	uint8 timer_enable, 
-	uint8 timer_mode, 
+	uint8  timer_no,
+	uint8 timer_enable,
+	uint8 timer_mode,
 	uint8 timer_halt
 )
 {
@@ -129,29 +129,29 @@ timer_Configure(
 	word1 = (timer_enable << timer_no)|(timer_mode << (timer_no + 8))|(timer_halt << (timer_no + 26));
 	word |= word1;
 	regWrite32(CR_TIMER_CTL, word);
-} 
+}
 
-void 
+void
 timerSet(
 	uint32 timer_no,
-	uint32 timerTime, 
+	uint32 timerTime,
 	uint32 enable,
-	uint32 mode, 
+	uint32 mode,
 	uint32 halt
 )
-{   
+{
     uint32 word;
 
 	/* when SYS_HCLK is large, it will cause overflow. The calculation will be wrong */
     /* word = (timerTime * SYS_HCLK) * 1000 / 2; */
-    word = (timerTime * SYS_HCLK) * 500; 
+    word = (timerTime * SYS_HCLK) * 500;
     timerLdvSet(timer_no,word);
     timerCtlSet(timer_no,enable,mode,halt);
 }
 
 void
 timer_WatchDogConfigure (
-	uint8 tick_enable, 
+	uint8 tick_enable,
 	uint8 watchdog_enable
 )
 {
@@ -172,19 +172,19 @@ is_nmi_enable(void)
 		return 1;
 	else
 		return 0;
-	
+
 }
 
 void
 set_nmi_enable(uint8 nmi_enable){
 	uint32 word;
 	/*Config NMI0*/
-	word = regRead32(CR_INTC_NMI0IMR0);	
+	word = regRead32(CR_INTC_NMI0IMR0);
 	if(nmi_enable)
 		word |= 0x200;
 	else
 		word &= ~0x200;
-	regWrite32(CR_INTC_NMI0IMR0, word);	
+	regWrite32(CR_INTC_NMI0IMR0, word);
 
 	#if 0
 	/*Config NMI1*/
@@ -272,12 +272,12 @@ irqreturn_t watchdog_timer_interrupt(int irq, void *dev_id)
 {
 	uint32 word;
 
-	word = regRead32(CR_TIMER_CTL); 
+	word = regRead32(CR_TIMER_CTL);
 	word &= 0xffc0ffff;
 	word |= 0x00200000;
 	regWrite32(CR_TIMER_CTL, word);
 
-	/* The KERN_ALERT will stop printk ring buffer mode. 
+	/* The KERN_ALERT will stop printk ring buffer mode.
 	 * This is used for flush ring buffer message to console.
 	 */
 	printk(KERN_ALERT "watchdog timer interrupt\n");
@@ -285,7 +285,7 @@ irqreturn_t watchdog_timer_interrupt(int irq, void *dev_id)
 #ifdef CONFIG_TC3162_ADSL
     /* stop adsl */
 	if (adsl_dev_ops)
-	    adsl_dev_ops->set(ADSL_SET_DMT_CLOSE, NULL, NULL); 
+	    adsl_dev_ops->set(ADSL_SET_DMT_CLOSE, NULL, NULL);
 #endif
 
 #if defined(CONFIG_MIPS_TC3262) && defined(TCSUPPORT_POWERSAVE_ENABLE)
@@ -309,7 +309,7 @@ irqreturn_t watchdog_timer_interrupt(int irq, void *dev_id)
 #if defined(TCSUPPORT_DYING_GASP) && (defined(CONFIG_MIPS_RT63365) && !(defined(TCSUPPORT_CPU_MT7510)||defined(TCSUPPORT_CPU_MT7520)||defined(TCSUPPORT_CPU_MT7505)))
 __IMEM
 irqreturn_t watchdog_timer_interrupt(int irq, void *dev_id){
-	
+
 	unsigned int word;
 	word = regRead32(0xbfb00834);
         word &= ~(1<<18);//enable spi
@@ -333,7 +333,7 @@ static void watchdog_timer_dispatch(void)
 }
 
 /************************************************************************
-*                   B U S  T I M E O U T  I N T E R R U P T  
+*                   B U S  T I M E O U T  I N T E R R U P T
 *************************************************************************
 */
 
@@ -341,7 +341,7 @@ irqreturn_t bus_timeout_interrupt(int irq, void *dev_id)
 {
 	uint32 reg;
 	uint32 addr;
-	
+
 	/* read to clear interrupt */
 	if(isMT751020 || isMT7505 || isEN751221)
 	{
@@ -352,7 +352,7 @@ irqreturn_t bus_timeout_interrupt(int irq, void *dev_id)
 			regWrite32(CR_PRATIR, 0);
 		addr =  regRead32(CR_ERR_ADDR);
 		printk("bus timeout interrupt ERR ADDR=%08lx\n", addr);
-		dump_stack();	
+		dump_stack();
 
 #if 0//def CONFIG_PCI
 		if(addr >= 0x1fb80000 && addr <= 0x1fb80064)
@@ -366,17 +366,17 @@ irqreturn_t bus_timeout_interrupt(int irq, void *dev_id)
 	else
 	{
 	reg = regRead32(CR_PRATIR);
-	
+
 	printk("bus timeout interrupt ERR ADDR=%08lx\n", regRead32(CR_ERR_ADDR));
-	dump_stack();	
-	
+	dump_stack();
+
 #ifdef CONFIG_PCI
 	pcieReset();
 	pcieRegInitConfig();
 	setahbstat(1);
 #endif
 	}
-	
+
 	return IRQ_HANDLED;
 }
 
@@ -399,7 +399,7 @@ unsigned int __cpuinit get_c0_compare_int(void)
 	}
 
 	if (vpe1_timer_installed == 0) {
-		if (cpu_has_veic) 
+		if (cpu_has_veic)
 			set_vi_handler(SI_TIMER_INT, mips_timer_dispatch);
 	}
 	mips_cpu_timer_irq = SI_TIMER_INT;
@@ -419,14 +419,15 @@ static void __init cputmr_hpt_timer_init(void)
 
 	expirelo[0] = cycles_per_jiffy;
 	expirelo[1] = expirelo[0];
-	
+
 	regWrite32(cputmr_cmr[0], expirelo[0]);
 	regWrite32(cputmr_cmr[1], expirelo[1]);
 
 	tmp = regRead32(CR_CPUTMR_CTL);
 	tmp |= (1<<1)|(1<<0);
-	regWrite32(CR_CPUTMR_CTL, tmp);	
+	regWrite32(CR_CPUTMR_CTL, tmp);
 }
+
 static void cputmr_timer_ack(void)
 {
 #if defined(CONFIG_MIPS_MT_SMP) || defined(CONFIG_MIPS_MT_SMTC)
@@ -500,7 +501,7 @@ void __init tc3162_time_init(void)
 #else
 		setup_irq(BUS_TOUT_INT, &bus_timeout_irqaction);
 #endif
-	} 
+	}
 
 }
 
@@ -508,7 +509,10 @@ void (*mips_timer_ack)(void);
 void __init plat_time_init(void)
 {
 	unsigned int est_freq = 0;
-    
+
+	/* Call in the same order as was in vr300-kernel/time.c#time_init. */
+	tc3162_time_init();
+
 	timerSet(1, TIMERTICKS_10MS, ENABLE, TIMER_TOGGLEMODE, TIMER_HALTDISABLE);
 
 	est_freq = estimate_cpu_frequency ();
@@ -516,16 +520,24 @@ void __init plat_time_init(void)
 	printk("CPU frequency %d.%02d MHz\n", est_freq/1000000,
 	       (est_freq%1000000)*100/1000000);
 
-    cpu_khz = est_freq / 1000;
-		
-	if (isRT63165 || isRT63365 || isMT751020 || isMT7505 ||isEN751221) {		
-		
+	cpu_khz = est_freq / 1000;
+
+	/* TODO: mips_timer_ack() should be called from
+	   kernel/cevt-r4k.c:c0_compare_interrupt, I did not merge
+	   these changes. As I see, if this is not done, the timer
+	   will stop and clocksource.read will return the same
+	   value.
+	   Until this is done somehow, do not use preceission
+	   timer. */
+#if 0
+	if (isRT63165 || isRT63365 || isMT751020 || isMT7505 ||isEN751221) {
+
 		/* enable CPU external timer */
 		clocksource_mips.read = cputmr_hpt_read;
 		mips_hpt_frequency = CPUTMR_CLK;
 
 		if (isEN751221) {
-		    /* mips_hpt_frequency *= (1 - 0.000160025604); */
+			/* mips_hpt_frequency *= (1 - 0.000160025604); */
 			mips_hpt_frequency -= 32005;
 		}
 
@@ -535,10 +547,11 @@ void __init plat_time_init(void)
 			(mips_hpt_frequency + HZ / 2) / HZ;
 
 		cputmr_hpt_timer_init();
-		
-		printk(" Using %u.%03u MHz high precision timer.\n",
+
+		printk("Using %u.%03u MHz high precision timer.\n",
 		   ((mips_hpt_frequency + 500) / 1000) / 1000,
 		   ((mips_hpt_frequency + 500) / 1000) % 1000);
 	}
+#endif
 }
 
