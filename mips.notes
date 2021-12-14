@@ -170,3 +170,7 @@ arch/mips/ralink/prom.c - new-file, ignore
  the chip:
    WriteReg(_SPI_CONTROLLER_REGS_MANUAL_DFIFO_WDATA, addr_byte)
             0xBFA10000 + 0x0038
+
+arch/mips/Kbuild.platforms - ignore
+
+arch/mips/Kconfig - ignore

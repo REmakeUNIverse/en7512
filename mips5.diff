@@ -71,6 +71,52 @@ diff -x '*~' -urN linux-5.9.9-orig/arch/mips/include/asm/pgtable-32.h linux-5.9.
  
  /* Swap entries must have VALID and GLOBAL bits cleared. */
  #define __swp_type(x)			(((x).val >> 4) & 0x1f)
+diff -x '*~' -urN linux-5.9.9-orig/arch/mips/Kbuild.platforms linux-5.9.9/arch/mips/Kbuild.platforms
+--- linux-5.9.9-orig/arch/mips/Kbuild.platforms	2021-12-08 09:15:09.706857424 +0200
++++ linux-5.9.9/arch/mips/Kbuild.platforms	2021-12-15 01:34:24.499581284 +0200
+@@ -38,6 +38,7 @@
+ platform-$(CONFIG_MACH_TX39XX)		+= txx9/
+ platform-$(CONFIG_MACH_TX49XX)		+= txx9/
+ platform-$(CONFIG_MACH_VR41XX)		+= vr41xx/
++platform-$(CONFIG_TC3262)		+= tc3162/
+ 
+ # include the platform specific files
+ include $(patsubst %, $(srctree)/arch/mips/%/Platform, $(platform-y))
+diff -x '*~' -urN linux-5.9.9-orig/arch/mips/Kconfig linux-5.9.9/arch/mips/Kconfig
+--- linux-5.9.9-orig/arch/mips/Kconfig	2021-12-08 09:15:09.706857424 +0200
++++ linux-5.9.9/arch/mips/Kconfig	2021-12-15 01:22:00.401129693 +0200
+@@ -620,6 +620,31 @@
+ 	select ARCH_HAS_RESET_CONTROLLER
+ 	select RESET_CONTROLLER
+ 
++config MIPS_TC3262
++	bool "TrendChip's TC3262 Board"
++	select CPU_MIPSR2_IRQ_VI
++	select CPU_MIPSR2_IRQ_EI
++	select NO_EXCEPT_FILL
++	select BOOT_RAW
++	select CEVT_R4K
++	select CSRC_R4K
++	select DMA_NONCOHERENT
++	select IRQ_CPU
++	# select HW_HAS_PCI
++	# select SWAP_IO_SPACE
++	select SYS_HAS_CPU_MIPS32_R1
++	select SYS_HAS_CPU_MIPS32_R2
++	select SYS_HAS_CPU_MIPS64_R1
++	select SYS_HAS_EARLY_PRINTK
++	select SYS_SUPPORTS_32BIT_KERNEL
++	select SYS_SUPPORTS_BIG_ENDIAN
++	select SYS_SUPPORTS_LITTLE_ENDIAN
++	select SYS_SUPPORTS_MULTITHREADING
++	# select TC3162_IMEM
++	# select TC3162_DMEM
++	help
++	  Support for TrendChip's TC3262 based board.
++
+ config SGI_IP22
+ 	bool "SGI IP22 (Indy/Indigo2)"
+ 	select ARC_MEMORY
 diff -x '*~' -urN linux-5.9.9-orig/arch/mips/kernel/idle.c linux-5.9.9/arch/mips/kernel/idle.c
 --- linux-5.9.9-orig/arch/mips/kernel/idle.c	2021-12-08 09:15:11.642825532 +0200
 +++ linux-5.9.9/arch/mips/kernel/idle.c	2021-12-08 09:58:49.204589821 +0200
