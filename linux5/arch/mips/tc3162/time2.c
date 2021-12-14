@@ -42,7 +42,6 @@ unsigned long cpu_khz;
 
 static int mips_cpu_timer_irq;
 extern int cp0_perfcount_irq;
-extern void smtc_timer_broadcast(int);
 
 static unsigned long cycles_per_jiffy __read_mostly;
 static unsigned int expirelo[2];
@@ -77,38 +76,6 @@ static void delay1ms(int ms)
 		timer_last = timer_now;
 	} while (tick_acc < tick_wait);
 }
-
-void delay1us(int period, int number)
-{
-	volatile unsigned int timer_now, timer_last;
-	volatile unsigned int  tick_acc;
-	unsigned int  one_tick_unit = SYS_HCLK * 500; // 500/100 = 1ms /100 = 10us
-	volatile unsigned int  tick_wait = number * one_tick_unit / 10; //caculate 10 us delay wait
-	volatile unsigned int  timer1_ldv = regRead32(CR_TIMER1_LDV);
-	int same_count = 0;
-	tick_acc = 0;
- 	timer_last = regRead32(CR_TIMER1_VLR);
-	do {
-   		timer_now = regRead32(CR_TIMER1_VLR);
-		if(timer_last == timer_now)
-		{
-			same_count++;
-		}
-		if(same_count >= period)
-		{
-			printk("delay1us: dead loop, break;\r\n");
-			return;
-		}
-       	if (timer_last >= timer_now)
-       		tick_acc += timer_last - timer_now;
-      	else
-       		tick_acc += timer1_ldv - timer_now + timer_last;
-     	timer_last = timer_now;
-	} while (tick_acc < tick_wait);
-}
-
-EXPORT_SYMBOL(delay1us);
-
 
 void
 timer_Configure(
@@ -338,37 +305,27 @@ irqreturn_t bus_timeout_interrupt(int irq, void *dev_id)
 	uint32 addr;
 
 	/* read to clear interrupt */
-	if(isMT751020 || isMT7505 || isEN751221)
+	if (isMT751020 || isMT7505 || isEN751221)
 	{
-		if(isMT7505 || isEN751221 ){
+		if (isMT7505 || isEN751221) {
 			regWrite32(CR_PRATIR, 1);
 		}
-		else
+		else {
 			regWrite32(CR_PRATIR, 0);
-		addr =  regRead32(CR_ERR_ADDR);
+		}
+		addr = regRead32(CR_ERR_ADDR);
 		printk("bus timeout interrupt ERR ADDR=%08lx\n", addr);
 		dump_stack();
-
-#if 0//def CONFIG_PCI
-		if(addr >= 0x1fb80000 && addr <= 0x1fb80064)
-		{
-			pcieReset();
-			pcieRegInitConfig();
-			setahbstat(1);
-		}
-#endif
 	}
 	else
 	{
-	reg = regRead32(CR_PRATIR);
-
-	printk("bus timeout interrupt ERR ADDR=%08lx\n", regRead32(CR_ERR_ADDR));
-	dump_stack();
-
+		reg = regRead32(CR_PRATIR);
+		printk("bus timeout interrupt ERR ADDR=%08lx\n", regRead32(CR_ERR_ADDR));
+		dump_stack();
 #ifdef CONFIG_PCI
-	pcieReset();
-	pcieRegInitConfig();
-	setahbstat(1);
+		pcieReset();
+		pcieRegInitConfig();
+		setahbstat(1);
 #endif
 	}
 
@@ -386,6 +343,10 @@ static void bus_timeout_dispatch(void)
 	do_IRQ(BUS_TOUT_INT);
 }
 
+/* get_c0_compare_int from cevt-r4k, is prefixed with __weak, so
+   this will be called.
+   c0_compare_interrupt will be set as the handler of returned
+   interrupt.  */
 unsigned int __cpuinit get_c0_compare_int(void)
 {
 	if ((get_current_vpe()) && !vpe1_timer_installed) {
@@ -401,10 +362,12 @@ unsigned int __cpuinit get_c0_compare_int(void)
 
 	return mips_cpu_timer_irq;
 }
+
 static cycle_t cputmr_hpt_read(void)
 {
 	return regRead32(cputmr_cnt[0]);
 }
+
 static void __init cputmr_hpt_timer_init(void)
 {
 	unsigned int tmp;
@@ -486,7 +449,7 @@ void __init tc3162_time_init(void)
 
 }
 
-void (*mips_timer_ack)(void);
+/* void (*mips_timer_ack)(void); */
 void __init plat_time_init(void)
 {
 	unsigned int est_freq = 0;
@@ -505,11 +468,15 @@ void __init plat_time_init(void)
 
 	/* TODO: mips_timer_ack() should be called from
 	   kernel/cevt-r4k.c:c0_compare_interrupt, I did not merge
-	   these changes. As I see, if this is not done, the timer
+	   this. As I see, if this is not done, the timer
 	   will stop and clocksource.read will return the same
 	   value.
 	   Until this is done somehow, do not use preceission
-	   timer. */
+	   timer.
+	   c0_compare_interrupt will be triggered on SI_TIME_INT
+	   returned by get_c0_compare_int defined here.
+	   clocksource.read returns read_c0_count and I do not know
+	   what this will return in this case. TODO: */
 #if 0
 	if (isRT63165 || isRT63365 || isMT751020 || isMT7505 ||isEN751221) {
 
