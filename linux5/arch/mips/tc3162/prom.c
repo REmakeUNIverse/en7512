@@ -44,7 +44,7 @@ static void tc3162_component_setup(void)
 		/* table reset */
 		VPint(0xbfbe0024) = 0x0;
 		VPint(0xbfbe0024) = 0xffff;
-		
+
 		/* hwnat swreset */
 		VPint(0xbfbe0000) = (1<<1);
 	}
@@ -69,7 +69,7 @@ static void tc3162_component_setup(void)
 	write_c0_cctl(controlReg | CCTL_IMEMFILL4);
 	write_c0_cctl(controlReg);
 	local_irq_restore(flags);
-	
+
 	printk("Enable IMEM addr=%x\n", CPHYSADDR(&__imem));
 #endif
 
@@ -122,7 +122,7 @@ void flash_init(void)
 		else if (isTC3162U || isRT63260 || isRT65168 || isTC3182 || isRT63165 || isRT63365)
 #else
 		if (isTC3162U || isRT63260 || isRT65168 || isTC3182 || isRT63165 || isRT63365 || isMT751020 || isMT7505 || isEN751221)
-#endif		
+#endif
 			flash_base = 0xb0000000;
 		else
 			flash_base = 0xbfc00000;
@@ -135,7 +135,7 @@ const char *get_system_type(void)
 #ifdef CONFIG_MIPS_TC3262
 	if(isEN751221){
 		io_swap_noneed = 1;
-		return "EcoNet EN751221 SOC";	
+		return "EcoNet EN751221 SOC";
 	}else if (isTC3182)
 		return "TrendChip TC3182 SOC";
 	else if (isRT65168)
@@ -145,12 +145,12 @@ const char *get_system_type(void)
 		return "Ralink RT63165 SOC";
 	} else if (isRT63365) {
 		io_swap_noneed = 1;
-#ifdef TCSUPPORT_DYING_GASP		
+#ifdef TCSUPPORT_DYING_GASP
 		if(!isRT63368){
 			//gpio 4 is share pin for rt63365.
 			VPint(0xbfb00860) &= ~(1<<13);//disable port 4 led when use rt63365.
 		}
-#endif		
+#endif
 		return "Ralink RT63365 SOC";
 	}else if (isMT751020){
 		io_swap_noneed = 1;
@@ -162,19 +162,19 @@ const char *get_system_type(void)
 	else
 		return "TrendChip TC3169 SOC";
 #else
-	if (isRT63260)	
+	if (isRT63260)
 		return "Ralink RT63260 SOC";
 	else if (isTC3162U)
 		return "TrendChip TC3162U SOC";
 	else if (isTC3162L5P5)
 		return "TrendChip TC3162L5/P5 SOC";
 	else if (isTC3162L4P4)
-		return "TrendChip TC3162L4/P4 SOC";	
+		return "TrendChip TC3162L4/P4 SOC";
 	else if (isTC3162L3P3)
 		return "TrendChip TC3162L2F/P2F";
 	else if (isTC3162L2P2)
 		return "TrendChip TC3162L2/P2";
-	else 
+	else
 		return "TrendChip TC3162";
 #endif
 }
@@ -196,13 +196,13 @@ void __init mips_nmi_setup (void)
 	base = cpu_has_veic ?
 		(void *)(ebase + 0x200 + VECTORSPACING*64) :
 		(void *)(ebase + 0x380);
-		
+
 	printk("nmi base is %x\n",base);
 
 	//Fill the NMI_Handler address in a register, which is a R/W register
 	//start.S will read it, then jump to NMI_Handler address
 	VPint(0xbfb00244) = base;
-	
+
 	memcpy(base, &except_vec_nmi, 0x80);
 	flush_icache_range((unsigned long)base, (unsigned long)base + 0x80);
 }
@@ -233,9 +233,9 @@ void __init prom_init(void)
 #ifdef CONFIG_MIPS_TC3262
 	if (isRT63165 || isRT63365 || isMT751020 || isMT7505 || isEN751221) {
 		/* enable external sync */
-#ifdef TCSUPPORT_IS_FH_PON			
+#ifdef TCSUPPORT_IS_FH_PON
 		strcat(arcs_cmdline, "rootfstype=jffs2 ro init=/etc/preinit.sh");
-#endif		
+#endif
 		strcat(arcs_cmdline, " es=1");
 
 #ifndef CONFIG_SMP
@@ -255,7 +255,7 @@ void __init prom_init(void)
 	}
 
 	if(isMT751020){
-		memsize = 0x800000 * (1 << (((VPint(0xbfb0008c) >> 13) & 0x7) - 1));	
+		memsize = 0x800000 * (1 << (((VPint(0xbfb0008c) >> 13) & 0x7) - 1));
 		if(memsize >= (448<<20)){
 			memsize = (448<<20);
 		}
@@ -283,7 +283,7 @@ void __init prom_init(void)
 			}
 		}
 		printk("memsize:%dMB\n", (memsize>>20));
-		
+
 	}else if(isEN751221){
 		if(isFPGA){
  			memsize = 0x800000 * (1 << (((VPint(0xbfb0008c) >> 13) & 0x7) - 1));
@@ -309,7 +309,7 @@ void __init prom_init(void)
 		/* SDRAM */
 		} else {
 			unsigned long sdram_cfg1;
-			
+
 			/* calculate SDRAM size */
 			sdram_cfg1 = VPint(0xbfb20004);
 			row = 11 + ((sdram_cfg1>>16) & 0x3);
@@ -364,7 +364,7 @@ int prom_putchar(char data)
 {
 	while (!(LSR_INDICATOR & LSR_THRE))
 		;
-	VPchar(CR_UART_THR) = data; 
+	VPchar(CR_UART_THR) = data;
 	return 1;
 }
 EXPORT_SYMBOL(prom_putchar);
@@ -416,7 +416,7 @@ static unsigned long  uclk_65000[13]={
 	44928,	// uclk 0.6912	Baud Rate 14400
 	29952,	// uclk 0.4608	Baud Rate 9600
 	14976,	// uclk 0.2304	Baud Rate 4800
-	7488,	// uclk 0.1152	Baud Rate 2400 
+	7488,	// uclk 0.1152	Baud Rate 2400
 	3744,	// uclk 0.0576	Baud Rate 1200
 	1872,	// uclk 0.0288	Baud Rate 600
 	936,		// uclk 0.0144	Baud Rate 300
@@ -463,7 +463,7 @@ static void hsuartInit(void)
 	VPchar(CR_HSUART_LCR) = UART_LCR;
 
 // Set interrupt Enable to, enable Tx, Rx and Line status
-	VPchar(CR_HSUART_IER) = UART_IER;	
+	VPchar(CR_HSUART_IER) = UART_IER;
 }
 
 static int hsuartInitialized = 0;
@@ -477,7 +477,7 @@ int putDebugChar(char c)
 
 	while (!(VPchar(CR_HSUART_LSR) & LSR_THRE))
 		;
-	VPchar(CR_HSUART_THR) = c; 
+	VPchar(CR_HSUART_THR) = c;
 
 	return 1;
 }
@@ -497,21 +497,21 @@ char getDebugChar(void)
 #if defined(TCSUPPORT_DYING_GASP) && (defined(CONFIG_MIPS_RT65168) || defined(CONFIG_MIPS_RT63365))
 __IMEM
 void dying_gasp_setup_mem_cpu(void){
-#ifdef CONFIG_MIPS_RT65168	
-		VPint(0xbfb20000) |= (1<<12); //set ddr to self refresh mode. 
+#ifdef CONFIG_MIPS_RT65168
+		VPint(0xbfb20000) |= (1<<12); //set ddr to self refresh mode.
 		VPint(0xbfb000c0) &= ~((1<<5)|(1<<6)|(1<<7));//CPU divide to 32 and ram divide to 3
 		VPint(0xbfb000c0) |= (1<<3)|(1<<4)|(1<<5)|(1<<7);
 #endif
-#ifdef CONFIG_MIPS_RT63365	
+#ifdef CONFIG_MIPS_RT63365
 
 
 #if defined(TCSUPPORT_CPU_MT7510)|| defined(TCSUPPORT_CPU_MT7520) || defined(TCSUPPORT_CPU_MT7505) || defined(TCSUPPORT_CPU_EN7512)
 
-#ifdef TCSUPPORT_CPU_EN7512               
+#ifdef TCSUPPORT_CPU_EN7512
                   /*FDIV down freq*/
                    VPint(0xbfa200d0) = 0x2000; /*FNDIV, clock /2*/
-                   VPint(0xbfa20148) = 0xffff800c; 
-                   VPint(0xbfa20148) = 0xffff000c; 
+                   VPint(0xbfa20148) = 0xffff800c;
+                   VPint(0xbfa20148) = 0xffff000c;
 #endif
 
                   VPint(0xbfb00044) = 1; //Enable DDR Self Refresh Mode
@@ -522,13 +522,13 @@ void dying_gasp_setup_mem_cpu(void){
 
 
 
-                
-#else 	
+
+#else
 		VPint(0xbfb00040) |= (1<<0); // reset ddr device
 		//do not kill CPU because we need do watchdog interrupt
 		//kill CPU
-		//VPint(0xbfb001c8) |= (1<<24); // bypass pll 2 700M 	
-		//VPint(0xbfb001cc) |= (1<<24); // bypass pll 2 665M	
+		//VPint(0xbfb001c8) |= (1<<24); // bypass pll 2 700M
+		//VPint(0xbfb001cc) |= (1<<24); // bypass pll 2 665M
 		//VPint(0xbfb001d0) |= (1<<24); // bypass pll 2 500
 #endif
 #endif
