@@ -7,7 +7,6 @@
 #include <asm/reboot.h>
 #include <asm/time.h>
 #include <asm/tc3162/tc3162.h>
-#include <asm/tc3162/TCIfSetQuery_os.h>
 
 static void tc3162_machine_restart(char *command);
 static void tc3162_machine_halt(void);

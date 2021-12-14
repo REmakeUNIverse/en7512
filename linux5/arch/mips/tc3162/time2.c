@@ -36,7 +36,6 @@
 #include <asm/time.h>
 
 #include <asm/tc3162/tc3162.h>
-#include <asm/tc3162/TCIfSetQuery_os.h>
 
 unsigned long cpu_khz;
 
