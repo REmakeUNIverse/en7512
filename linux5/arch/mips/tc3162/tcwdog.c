@@ -83,7 +83,7 @@ static spinlock_t  protect_lock;
 #define PPE_DFP_CPORT	  0xbfb50e48
 #define PPE_TB_CFG	      0xbfb50e1c
 
-void 
+void
 attack_protect_set(int active, int mode){
 	unsigned int value=0;
 	unsigned int val_1=0;
@@ -109,7 +109,7 @@ attack_protect_set(int active, int mode){
 			value = regRead32(PPE_TB_CFG);
 			value &= ~(0x3000);
 			regWrite32(PPE_TB_CFG, value);
-			
+
 			/*default port 1 to drop*/
 			value = regRead32(PPE_DFP_CPORT);
 			value &= ~(0x070);
@@ -137,7 +137,7 @@ attack_protect_set(int active, int mode){
 			value |= 0x500;
 			regWrite32(PPE_DFP_CPORT, value);
 		}
-		else if(mode == 2){ 
+		else if(mode == 2){
 			val_1 = regRead32(PPE_DFP_CPORT);
 			if((val_1 & 0x700) == 0x500){ /*make sure the keep alive is setting by femac driver*/
 				/*restore the keep alive*/
@@ -165,7 +165,7 @@ void watchDogReset(void)
 #ifdef CONFIG_TC3162_ADSL
     /* stop adsl */
 	if (adsl_dev_ops)
-	    adsl_dev_ops->set(ADSL_SET_DMT_CLOSE, NULL, NULL); 
+	    adsl_dev_ops->set(ADSL_SET_DMT_CLOSE, NULL, NULL);
 #endif
 
 #if defined(CONFIG_MIPS_TC3262) && defined(TCSUPPORT_POWERSAVE_ENABLE)
@@ -226,7 +226,7 @@ static int tc3162wdog_open(struct inode *inode, struct file *file)
 	if (nowayout) {
 		printk("Watchdog cannot be stopped once started. \n");
 	}
-  
+
 	timerSet(5, 2000 * TIMERTICKS_10MS, ENABLE, TIMER_TOGGLEMODE, TIMER_HALTDISABLE);
 	timer_WatchDogConfigure(ENABLE, ENABLE);
 
@@ -281,7 +281,7 @@ static int watchdog_reset_read_proc(char *page, char **start, off_t off,
 }
 static int watchdog_reset_write_proc(struct file *file, const char *buffer,
 	unsigned long count, void *data){
-	watchDogReset();	
+	watchDogReset();
 	return 0;
 }
 
@@ -360,7 +360,7 @@ static int timer_interrupt_read_proc(char *page, char **start, off_t off,
 
 static int timer_interrupt_write_proc(struct file *file, const char *buffer,
 	unsigned long count, void *data)
-{	
+{
 	char val_string[64], cmd[64] ,subcmd[64];
 	uint action;
 	int i;
@@ -368,7 +368,7 @@ static int timer_interrupt_write_proc(struct file *file, const char *buffer,
 	memset(val_string, 0, (sizeof(val_string)));
 	memset(cmd, 0, (sizeof(cmd)));
 	memset(subcmd, 0, (sizeof(subcmd)));
-	
+
 	if (count > sizeof(val_string) - 1)
 		return -EINVAL ;
 
@@ -376,7 +376,7 @@ static int timer_interrupt_write_proc(struct file *file, const char *buffer,
 		return -EFAULT ;
 
 	sscanf(val_string, "%s %s %x", cmd, subcmd, &action) ;
-	
+
 	if(!strcmp(cmd, "reset")) {
 		for(i = 0; i < 4; i++) {
 			cpu_timer_loss[i] = 0;
@@ -393,7 +393,7 @@ static int __init tc3162_watchdog_init(void)
 	struct proc_dir_entry *watchdog_proc=NULL;
 	struct proc_dir_entry *timer_procdir=NULL;
 	struct proc_dir_entry *timer_proc=NULL;
-	
+
 	watchdog_proc = create_proc_entry("watchdog_reset", 0, NULL);
 	watchdog_proc->read_proc = watchdog_reset_read_proc;
 	watchdog_proc->write_proc = watchdog_reset_write_proc;
@@ -406,7 +406,7 @@ static int __init tc3162_watchdog_init(void)
 
 	spin_lock_init(&protect_lock);
 
-	
+
 	misc_register(&tc3162wdog_miscdev);
 	if(timer_procdir == NULL) {
 		timer_procdir = proc_mkdir("timer", NULL);
@@ -422,7 +422,7 @@ static int __init tc3162_watchdog_init(void)
 			printk("\ncreate timer_interrupt proc fail.\n");
 		}
 	}
-	
+
 	printk("TC3162 hardware watchdog module loaded.\n");
 	return 0;
 }
