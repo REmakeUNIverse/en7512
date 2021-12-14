@@ -12,24 +12,7 @@
 #include <asm/tc3162/tc3162.h>
 #include <asm/traps.h>
 
-#ifdef TCSUPPORT_INIC_CLIENT
-#include <linux/mtd/fttdp_inic.h>
-#endif
-
 extern int __imem, __dmem;
-
-/* frankliao added 20101215 */
-unsigned long flash_base;
-EXPORT_SYMBOL(flash_base);
-unsigned int (*ranand_read_byte)(unsigned long long) = NULL;
-EXPORT_SYMBOL(ranand_read_byte);
-unsigned int (*ranand_read_dword)(unsigned long long) = NULL;
-EXPORT_SYMBOL(ranand_read_dword);
-
-#ifdef CONFIG_MIPS_TC3262
-unsigned char io_swap_noneed=0;
-EXPORT_SYMBOL(io_swap_noneed);
-#endif
 
 static void tc3162_component_setup(void)
 {
@@ -102,7 +85,9 @@ static void tc3162_component_setup(void)
 #endif
 }
 
-/* frankliao added 20101215 */
+/* flash_base is not used. Keept for reference. */
+static unsigned long flash_base;
+// EXPORT_SYMBOL(flash_base);
 void flash_init(void)
 {
 
@@ -111,12 +96,7 @@ void flash_init(void)
 	} else {
 #ifdef TCSUPPORT_ADDR_MAPPING
 		if(isMT751020 || isMT7505 || isEN751221){
-			#ifdef TCSUPPORT_INIC_CLIENT
-			/* To use last INIC_CLIENT_RAM_SIMU_OFFSET size of RAM as flash */
-			flash_base = 0xA0000000 + (0x800000 * (1 << (((VPint(0xbfb0008c) >> 13) & 0x7) - 1))- INIC_CLIENT_RAM_SIMU_MAX_SIZE);
-			#else
 			flash_base = 0xbc000000;
-			#endif
 			printk("%s: flash_base:%x \n",__func__,flash_base);
 		}
 		else if (isTC3162U || isRT63260 || isRT65168 || isTC3182 || isRT63165 || isRT63365)
@@ -133,18 +113,15 @@ void flash_init(void)
 const char *get_system_type(void)
 {
 #ifdef CONFIG_MIPS_TC3262
-	if(isEN751221){
-		io_swap_noneed = 1;
+	if (isEN751221) {
 		return "EcoNet EN751221 SOC";
 	}else if (isTC3182)
 		return "TrendChip TC3182 SOC";
 	else if (isRT65168)
 		return "Ralink RT65168 SOC";
 	else if (isRT63165){
-		io_swap_noneed = 1;
 		return "Ralink RT63165 SOC";
 	} else if (isRT63365) {
-		io_swap_noneed = 1;
 #ifdef TCSUPPORT_DYING_GASP
 		if(!isRT63368){
 			//gpio 4 is share pin for rt63365.
@@ -153,10 +130,8 @@ const char *get_system_type(void)
 #endif
 		return "Ralink RT63365 SOC";
 	}else if (isMT751020){
-		io_swap_noneed = 1;
 		return "Ralink MT751020 SOC";
 	}else if (isMT7505){
-		io_swap_noneed = 1;
 		return "Ralink MT7505 SOC";
 	}
 	else
@@ -209,16 +184,15 @@ void __init mips_nmi_setup (void)
 
 void cpu_dma_round_robin(uint8 mode)
 {
-    uint32 reg_value=0;
+    uint32 reg_value = 0;
     reg_value = VPint(ARB_CFG);
-    if(mode == ENABLE){
+    if(mode == ENABLE) {
         reg_value |= ROUND_ROBIN_ENABLE;
     } else {
         reg_value &= ROUND_ROBIN_DISBALE;
     }
     VPint(ARB_CFG) = reg_value;
 }
-
 
 void __init prom_init(void)
 {
@@ -227,7 +201,6 @@ void __init prom_init(void)
 	unsigned long col;
 	unsigned long row;
 
-	/* frankliao added 20101222 */
 	flash_init();
 
 #ifdef CONFIG_MIPS_TC3262
@@ -333,11 +306,7 @@ void __init prom_init(void)
 
 	tc3162_component_setup();
 
-	#ifdef TCSUPPORT_INIC_CLIENT
-	add_memory_region(0 + 0x20000, memsize - 0x20000 - INIC_CLIENT_RAM_SIMU_MAX_SIZE, BOOT_MEM_RAM);
-	#else
 	add_memory_region(0 + 0x20000, memsize - 0x20000, BOOT_MEM_RAM);
-	#endif
 	if (isMT751020 || isMT7505 || isEN751221) {
 		board_nmi_handler_setup = mips_nmi_setup;
 	}
@@ -347,9 +316,6 @@ void __init prom_init(void)
 
 #ifdef CONFIG_MIPS_MT_SMP
 	register_smp_ops(&vsmp_smp_ops);
-#endif
-#ifdef CONFIG_MIPS_MT_SMTC
-	register_smp_ops(&msmtc_smp_ops);
 #endif
     if(isEN751221)
 		cpu_dma_round_robin(ENABLE);

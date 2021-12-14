@@ -1,0 +1,27 @@
+1.
+simple_map_init is defined in drivers/mtd/maps/map_funcs.c
+    map->read = simple_map_read;
+    map->write = simple_map_write;
+
+simple_map_read(struct map_info *map, unsigned long ofs)
+{
+        return inline_map_read(map, ofs);
+}
+
+inline_map_read is in include/linux/mtd/map.h
+ if (map_bankwidth_is_1(map))
+                r.x[0] = __raw_readb(map->virt + ofs);
+
+__raw_readb is here: include/asm-generic/io.h
+static inline u8 __raw_readb(const volatile void __iomem *addr)
+{
+	return *(const volatile u8 __force *)addr;
+}
+
+Later spi_nand_flash will call nand_scan_ident and nand_scan_tail, these will set their own map->read, etc, fields.
+
+So map->virt is not sued. ioremap is not necessary.
+
+2. The structure of nand_chip changed, there is no write_buf, for example, but there is chip.legacy with these fields.
+
+3. spi_nand_flash.c:spinand_cmdfunc will save to _current_cache_page. spinand_read_buff, depending on command and some other options, will just copy _current_cache_.

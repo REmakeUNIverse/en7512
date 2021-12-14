@@ -49,7 +49,14 @@ arch/mips/include/asm/io.h - rollback, ignored
 
 arch/mips/include/asm/mach-generic/mangle-port.h - rollback
  The variable is set in ralink/prom.c, it is 1 for EN7512.
- TODO: Turn off SWAP_IO_SPACE from Kconfig.
+ TODO: Turn off SWAP_IO_SPACE from Kconfig for:
+   EN751221
+   RT63165
+   RT63365
+   MT751020
+   MT7505
+   MT75102
+   MT750
 
 arch/mips/include/asm/mipsregs.h - rollback
  Added to linux5.
@@ -142,3 +149,24 @@ arch/mips/ralink - new-file
  Moved to linux5/arch/mips/tc3162.
 
 arch/mips/ralink/tcwdog.c - new-file, ignore
+
+arch/mips/ralink/prom.c - new-file, ignore
+ flash_init initializes flash_base variable and that is it. It is
+ set to 0xbc000000 for my SoC. This variable was used in
+ tc3162-flash.c for locating trx header which contains kernel
+ offset and length for MTD partitions configuration.
+
+ spi_nand_flash.c:spi_nand_read_internal
+ if(  (0xbc000000 <= addr) ...
+   ...
+   addr &= 0x03ffffff
+
+ This fun is called by nand_chip funcs.
+ So it seems flash_base is unnecessary for this driver.
+
+ The func will calculate page_number from addr and call
+ spi_nand_read_page which will ask NAND flash chip to load
+ page into its cache, sending page_number byte by byte to
+ the chip:
+   WriteReg(_SPI_CONTROLLER_REGS_MANUAL_DFIFO_WDATA, addr_byte)
+            0xBFA10000 + 0x0038
