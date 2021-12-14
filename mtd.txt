@@ -25,3 +25,5 @@ So map->virt is not sued. ioremap is not necessary.
 2. The structure of nand_chip changed, there is no write_buf, for example, but there is chip.legacy with these fields.
 
 3. spi_nand_flash.c:spinand_cmdfunc will save to _current_cache_page. spinand_read_buff, depending on command and some other options, will just copy _current_cache_.
+
+4. nand_scan_with_ids instead of nand_scan_ident and nand_scan_tail. It will look in chip.legacy and setup funcs from there. So set chip.legacy.fun instead of chip.fun.
