@@ -24,7 +24,7 @@ arch/mips/include/asm/processor.h - rollback
 
 arch/mips/include/asm/time.h - rollback
  SMTC is not supported anymore.
- TODO: mips_timer_ack in cevt-r4k.
+ mips_timer_ack.
 
 arch/mips/kernel/time.c - rollback
  Delete #if 0.
@@ -33,7 +33,8 @@ arch/mips/kernel/cpu-probe.c - partially
  Move cpu_wait_en7512 to linux5/arch/mips/kernel/idle.c.
 
 arch/mips/kernel/cevt-r4k.c - rollback
- TODO mips_timer_ack.
+ mips_timer_ack is for precission timer, but I've disabled it
+ for the moment.
 
 arch/mips/kernel/traps.c - rollback
  show_stack_nmi - called from ralink/tcwdog.c. Linux5 defines
@@ -137,6 +138,7 @@ arch/mips/pci/pci-tc3162u.c - new-file
  pcie_init() is not called anywhere. pcieRegInitConfig is not
  called if EN75*.
 
-arch/mips/ralink - new-files
+arch/mips/ralink - new-file
  Moved to linux5/arch/mips/tc3162.
 
+arch/mips/ralink/tcwdog.c - new-file, ignore

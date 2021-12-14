@@ -125,41 +125,6 @@ timer_WatchDogConfigure (
 	regWrite32(CR_TIMER_CTL, word);
 }
 
-int
-is_nmi_enable(void)
-{
-	uint32 word = regRead32(CR_AHB_NMI_CONF);
-
-	if(word & 0x3)
-		return 1;
-	else
-		return 0;
-
-}
-
-void
-set_nmi_enable(uint8 nmi_enable){
-	uint32 word;
-	/*Config NMI0*/
-	word = regRead32(CR_INTC_NMI0IMR0);
-	if(nmi_enable)
-		word |= 0x200;
-	else
-		word &= ~0x200;
-	regWrite32(CR_INTC_NMI0IMR0, word);
-
-	#if 0
-	/*Config NMI1*/
-	word = regRead32(CR_INTC_NMI1IMR0);
-	if(nmi_enable)
-		word |= 0x200;
-	else
-		word &= ~0x200;
-	regWrite32(CR_INTC_NMI1IMR0, word);
-	#endif
-
-}
-
 #if defined(TCSUPPORT_DYING_GASP)
 EXPORT_SYMBOL(timerSet);
 EXPORT_SYMBOL(timer_WatchDogConfigure);
@@ -243,12 +208,6 @@ irqreturn_t watchdog_timer_interrupt(int irq, void *dev_id)
 	 * This is used for flush ring buffer message to console.
 	 */
 	printk(KERN_ALERT "watchdog timer interrupt\n");
-
-#ifdef CONFIG_TC3162_ADSL
-    /* stop adsl */
-	if (adsl_dev_ops)
-	    adsl_dev_ops->set(ADSL_SET_DMT_CLOSE, NULL, NULL);
-#endif
 
 #if defined(CONFIG_MIPS_TC3262) && defined(TCSUPPORT_POWERSAVE_ENABLE)
 	if(isRT63365){
@@ -421,11 +380,7 @@ void __init tc3162_time_init(void)
 		regWrite32(CR_WDOG_THSLD, ((3 * TIMERTICKS_1S * SYS_HCLK) * 500)); // (3 * TIMERTICKS_1S * SYS_HCLK) * 1000 / 2
 		if (cpu_has_vint)
 			set_vi_handler(TIMER5_INT, watchdog_timer_dispatch);
-#ifdef CONFIG_MIPS_MT_SMTC
-		setup_irq_smtc(TIMER5_INT, &watchdog_timer_irqaction, 0x0);
-#else
 		setup_irq(TIMER5_INT, &watchdog_timer_irqaction);
-#endif
 
 		/* setup bus timeout interrupt */
    		//VPint(CR_MON_TMR) |= ((1<<30) | (0xff));
@@ -440,11 +395,7 @@ void __init tc3162_time_init(void)
 
 		if (cpu_has_vint)
 			set_vi_handler(BUS_TOUT_INT, bus_timeout_dispatch);
-#ifdef CONFIG_MIPS_MT_SMTC
-		setup_irq_smtc(BUS_TOUT_INT, &bus_timeout_irqaction, 0x0);
-#else
 		setup_irq(BUS_TOUT_INT, &bus_timeout_irqaction);
-#endif
 	}
 
 }
