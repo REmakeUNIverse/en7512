@@ -1,12 +1,10 @@
 *~
 linux-2.6.36
 linux-5.9.9
-linux-5.9.9-orig
-GPL_Archer_VR300(EU)1.20
-tplink-vr300
 buildroot
-linux-*.gz
-GPL_Archer*.gz
+linux-5-git
+tplink-vr300
 vr300-linux
 vr300-linux-orig
+support
 tmp

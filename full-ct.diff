@@ -1,0 +1,615 @@
+diff --git a/arch/mips/Kbuild.platforms b/arch/mips/Kbuild.platforms
+index 0ee0abb31..20480659f 100644
+--- a/arch/mips/Kbuild.platforms
++++ b/arch/mips/Kbuild.platforms
+@@ -38,7 +38,7 @@ platform-$(CONFIG_SNI_RM)		+= sni/
+ platform-$(CONFIG_MACH_TX39XX)		+= txx9/
+ platform-$(CONFIG_MACH_TX49XX)		+= txx9/
+ platform-$(CONFIG_MACH_VR41XX)		+= vr41xx/
+-platform-$(CONFIG_TC3262)		+= tc3162/
++platform-$(CONFIG_MIPS_TC3262)		+= tc3162/
+ 
+ # include the platform specific files
+ include $(patsubst %, $(srctree)/arch/mips/%/Platform, $(platform-y))
+diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
+index d085c11f2..e77f5990d 100644
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -629,7 +629,7 @@ config MIPS_TC3262
+ 	select CEVT_R4K
+ 	select CSRC_R4K
+ 	select DMA_NONCOHERENT
+-	select IRQ_CPU
++	select IRQ_MIPS_CPU
+ 	# select HW_HAS_PCI
+ 	# select SWAP_IO_SPACE
+ 	select SYS_HAS_CPU_MIPS32_R1
+diff --git a/arch/mips/include/asm/tc3162/irq.h b/arch/mips/include/asm/tc3162/irq.h
+index 2768f1afe..4db3c9743 100644
+--- a/arch/mips/include/asm/tc3162/irq.h
++++ b/arch/mips/include/asm/tc3162/irq.h
+@@ -1,6 +1,10 @@
+ #ifndef __ASM_MACH_MIPS_IRQ_H
+ #define __ASM_MACH_MIPS_IRQ_H
+ 
++/* This is only required for kernel/cevt-r4k.c to compile, it defines
++   __weak get_c0_compare_int(), but the definition from timer2.c
++   will be "preferred". */
++#define MIPS_CPU_IRQ_BASE 0
+ 
+ #ifdef CONFIG_MIPS_TC3262
+ #define NR_IRQS 64
+diff --git a/arch/mips/kernel/cpu-probe.c b/arch/mips/kernel/cpu-probe.c
+index d391a2750..546f5551c 100644
+--- a/arch/mips/kernel/cpu-probe.c
++++ b/arch/mips/kernel/cpu-probe.c
+@@ -1390,7 +1390,8 @@ static inline void cpu_probe_legacy(struct cpuinfo_mips *c, unsigned int cpu)
+ 		break;
+ 	case PRID_IMP_TC3162:
+ 		c->cputype = CPU_R3000;
+-		c->isa_level = MIPS_CPU_ISA_I;
++		// TODO: MIPS_CPU_ISA_I is not defined.
++		// c->isa_level = MIPS_CPU_ISA_I;
+ 		c->options = MIPS_CPU_TLB | MIPS_CPU_3K_CACHE |
+ 		             MIPS_CPU_NOFPUEX;
+ 		c->tlbsize = 32;
+diff --git a/arch/mips/kernel/mips-mt-fpaff.c b/arch/mips/kernel/mips-mt-fpaff.c
+index a072eb797..86f8ed832 100644
+--- a/arch/mips/kernel/mips-mt-fpaff.c
++++ b/arch/mips/kernel/mips-mt-fpaff.c
+@@ -76,9 +76,9 @@ asmlinkage long mipsmt_sys_sched_setaffinity(pid_t pid, unsigned int len,
+ 	if (copy_from_user(&new_mask, user_mask_ptr, sizeof(new_mask)))
+ 		return -EFAULT;
+ 
+-
+-#ifdef CONFIG_MIPS_MT_SMP
+-#ifndef CONFIG_MIPS_MT_SMTC
++#if 0
++// #ifdef CONFIG_MIPS_MT_SMP
++/* TC3262 TODO. */
+ 	printk("\r\n\r\n%s new_mask origin value is %08x\r\n\r\n", __FUNCTION__, *new_mask);
+ 	if(*(unsigned long *)new_mask == 0x8)
+ 	{
+@@ -92,10 +92,9 @@ asmlinkage long mipsmt_sys_sched_setaffinity(pid_t pid, unsigned int len,
+ 	{
+ 		*(unsigned long *)new_mask = 0x1;
+ 	}
+-	
++
+ 	printk("\r\n\r\n%s new_mask changed value is %08x\r\n\r\n", __FUNCTION__, *new_mask);
+ #endif
+-#endif
+ 
+ 
+ 	get_online_cpus();
+diff --git a/arch/mips/tc3162/Makefile b/arch/mips/tc3162/Makefile
+old mode 100755
+new mode 100644
+diff --git a/arch/mips/tc3162/Platform b/arch/mips/tc3162/Platform
+old mode 100755
+new mode 100644
+index 4e5082249..cab07770a
+--- a/arch/mips/tc3162/Platform
++++ b/arch/mips/tc3162/Platform
+@@ -1,8 +1,7 @@
+ #
+ # Ralink boards
+ #
+-platform-$(CONFIG_MIPS_TC3262)	+= ralink/ softfloat/
+-cflags-$(CONFIG_MIPS_TC3262)	+= -I$(srctree)/arch/mips/include/asm/tc3162/
++cflags-$(CONFIG_MIPS_TC3262)	+= -I$(srctree)/arch/mips/include/asm/tc3162/ -Wno-error=unused-variable -Wno-error=format -Wno-error=int-conversion -Wno-error=unused-function
+ ifneq ($(strip $(TCSUPPORT_FREE_BOOTBASE)),)
+ load-$(CONFIG_MIPS_TC3262) += $(KERNEL_START_ADDR)
+ else
+diff --git a/arch/mips/tc3162/irq.c b/arch/mips/tc3162/irq.c
+index 5292d8e7a..4fd53c546 100644
+--- a/arch/mips/tc3162/irq.c
++++ b/arch/mips/tc3162/irq.c
+@@ -13,6 +13,7 @@
+ #include <asm/io.h>
+ #include <asm/irq.h>
+ #include <asm/mipsregs.h>
++#include <asm/setup.h>
+ #include <asm/tc3162/tc3162.h>
+ #include <linux/sched.h>
+ 
+@@ -34,12 +35,12 @@
+ 
+ static DEFINE_SPINLOCK(tc3162_irq_lock);
+ 
+-static inline void unmask_mips_mt_irq(unsigned int irq)
++static inline void unmask_mips_mt_irq(struct irq_data *d)
+ {
+ 	unsigned int vpflags = dvpe();
+ 	int cpu_irq = 0;
+ 
+-	if ((irq == SI_SWINT1_INT1) || (irq == SI_SWINT_INT1))  
++	if ((d->irq == SI_SWINT1_INT1) || (d->irq == SI_SWINT_INT1))
+ 		cpu_irq = 1;
+ 
+ 	set_c0_status(0x100 << cpu_irq);
+@@ -47,12 +48,12 @@ static inline void unmask_mips_mt_irq(unsigned int irq)
+ 	evpe(vpflags);
+ }
+ 
+-static inline void mask_mips_mt_irq(unsigned int irq)
++static inline void mask_mips_mt_irq(struct irq_data *d)
+ {
+ 	unsigned int vpflags = dvpe();
+ 	int cpu_irq = 0;
+ 
+-	if ((irq == SI_SWINT1_INT1) || (irq == SI_SWINT_INT1))  
++	if ((d->irq == SI_SWINT1_INT1) || (d->irq == SI_SWINT_INT1))
+ 		cpu_irq = 1;
+ 
+ 	clear_c0_status(0x100 << cpu_irq);
+@@ -60,30 +61,31 @@ static inline void mask_mips_mt_irq(unsigned int irq)
+ 	evpe(vpflags);
+ }
+ 
+-static unsigned int mips_mt_cpu_irq_startup(unsigned int irq)
++static unsigned int mips_mt_cpu_irq_startup(struct irq_data *d)
+ {
++	unsigned int irq = d->irq;
+ 	unsigned int vpflags = dvpe();
+ 	unsigned long int tmp;
+ 	int cpu_irq = 0;
+ 
+-	if ((irq == SI_SWINT1_INT1) || (irq == SI_SWINT_INT1))  
++	if ((irq == SI_SWINT1_INT1) || (irq == SI_SWINT_INT1))
+ 		cpu_irq = 1;
+ #ifdef TCSUPPORT_MT7510_E1
+ 	READ_E1(CR_INTC_IMR);
+ #endif
+ 	tmp = regRead32(CR_INTC_IMR);
+-	tmp |= (1 << (irq-1));
++	tmp |= (1 << (irq - 1));
+ 
+-	if (irq == SI_SWINT_INT0){
++	if (irq == SI_SWINT_INT0) {
+ 		tmp |= (1 << (SI_SWINT1_INT0-1));
+-	}else if (irq == SI_SWINT_INT1){
++	} else if (irq == SI_SWINT_INT1) {
+ 		tmp |= (1 << (SI_SWINT1_INT1-1));
+ 	}
+ 	regWrite32(CR_INTC_IMR, tmp);
+ 
+ 	clear_c0_cause(0x100 << cpu_irq);
+ 	evpe(vpflags);
+-	unmask_mips_mt_irq(irq);
++	unmask_mips_mt_irq(d);
+ 
+ 	return 0;
+ }
+@@ -92,36 +94,36 @@ static unsigned int mips_mt_cpu_irq_startup(unsigned int irq)
+  * While we ack the interrupt interrupts are disabled and thus we don't need
+  * to deal with concurrency issues.  Same for mips_cpu_irq_end.
+  */
+-static void mips_mt_cpu_irq_ack(unsigned int irq)
++static void mips_mt_cpu_irq_ack(struct irq_data *d)
+ {
+ 	unsigned int vpflags = dvpe();
+ 	int cpu_irq = 0;
+ 
+-	if ((irq == SI_SWINT1_INT1) || (irq == SI_SWINT_INT1))  
++	if ((d->irq == SI_SWINT1_INT1) || (d->irq == SI_SWINT_INT1))
+ 		cpu_irq = 1;
+ 
+ 	clear_c0_cause(0x100 << cpu_irq);
+ 	evpe(vpflags);
+-	mask_mips_mt_irq(irq);
++	mask_mips_mt_irq(d);
+ }
+ 
+ static struct irq_chip mips_mt_cpu_irq_controller = {
+ 	.name		= "MIPS",
+-	.startup	= mips_mt_cpu_irq_startup,
+-	.ack		= mips_mt_cpu_irq_ack,
+-	.mask		= mask_mips_mt_irq,
+-	.mask_ack	= mips_mt_cpu_irq_ack,
+-	.unmask		= unmask_mips_mt_irq,
+-	.eoi		= unmask_mips_mt_irq,
++	.irq_startup	= mips_mt_cpu_irq_startup,
++	.irq_ack	= mips_mt_cpu_irq_ack,
++	.irq_mask	= mask_mips_mt_irq,
++	.irq_mask_ack	= mips_mt_cpu_irq_ack,
++	.irq_unmask	= unmask_mips_mt_irq,
++	.irq_eoi	= unmask_mips_mt_irq,
+ };
+ 
+ #define __BUILD_IRQ_DISPATCH(irq_n) \
+ static void __tc3262_irq_dispatch##irq_n(void) \
+ {								\
+ 	do_IRQ(irq_n);				\
+-}	
++}
+ 
+-#define __BUILD_IRQ_DISPATCH_FUNC(irq_n)  __tc3262_irq_dispatch##irq_n 
++#define __BUILD_IRQ_DISPATCH_FUNC(irq_n)  __tc3262_irq_dispatch##irq_n
+ 
+ /* pre-built 64 irq dispatch function */
+ __BUILD_IRQ_DISPATCH(0)
+@@ -260,8 +262,9 @@ __BUILD_IRQ_DISPATCH_FUNC(63)
+ 
+ #endif
+ 
+-__IMEM static inline void unmask_mips_irq(unsigned int irq)
++static inline void unmask_mips_irq(struct irq_data *d)
+ {
++	unsigned int irq = d->irq;
+ #ifdef CONFIG_MIPS_TC3262
+ 	unsigned long flags;
+ 	unsigned long int tmp;
+@@ -300,19 +303,16 @@ __IMEM static inline void unmask_mips_irq(unsigned int irq)
+ #endif
+ }
+ 
+-__IMEM static inline void mask_mips_irq(unsigned int irq)
++static inline void mask_mips_irq(struct irq_data *d)
+ {
++	unsigned int irq = d->irq;
+ #ifdef CONFIG_MIPS_TC3262
+ 	unsigned long flags;
+ 	unsigned long int tmp;
+ 	int cpu = smp_processor_id();
+ 
+ 	spin_lock_irqsave(&tc3162_irq_lock, flags);
+-#ifdef CONFIG_MIPS_MT_SMTC
+-	if (cpu_data[cpu].vpe_id != 0) {
+-#else
+ 	if (cpu != 0) {
+-#endif
+ 		if (irq == SI_TIMER_INT)
+ 			irq = SI_TIMER1_INT;
+ 	}
+@@ -396,29 +396,23 @@ void tc3162_disable_irq(unsigned int irq)
+ }
+ EXPORT_SYMBOL(tc3162_disable_irq);
+ 
+-#ifdef CONFIG_MIPS_MT_SMP
+-#ifndef CONFIG_MIPS_MT_SMTC
++// #ifdef CONFIG_MIPS_MT_SMP
++#if 0
+ extern int plat_set_irq_affinity(unsigned int irq,
+ 				  const struct cpumask *affinity);
+ #endif
+-#endif
+ 
+ static struct irq_chip tc3162_irq_chip = {
+ 	.name		= "MIPS",
+-	.ack		= mask_mips_irq,
+-	.mask		= mask_mips_irq,
+-	.mask_ack	= mask_mips_irq,
+-	.unmask		= unmask_mips_irq,
+-	.eoi		= unmask_mips_irq,
+-#ifdef CONFIG_MIPS_MT_SMTC_IRQAFF 
++	.irq_ack	= mask_mips_irq,
++	.irq_mask	= mask_mips_irq,
++	.irq_mask_ack	= mask_mips_irq,
++	.irq_unmask	= unmask_mips_irq,
++	.irq_eoi        = unmask_mips_irq,
++// #ifndef CONFIG_MIPS_MT_SMP
++#if 0
+ 	.set_affinity	= plat_set_irq_affinity,
+-#else
+-#ifdef CONFIG_MIPS_MT_SMP
+-#ifndef CONFIG_MIPS_MT_SMTC
+-	.set_affinity	= plat_set_irq_affinity,
+-#endif
+ #endif
+-#endif /* CONFIG_MIPS_MT_SMTC_IRQAFF */
+ };
+ 
+ extern void vsmp_int_init(void);
+@@ -435,28 +429,28 @@ void __init arch_init_irq(void)
+ 	for (i = 0; i < NR_IRQS; i++) {
+ #ifdef CONFIG_MIPS_TC3262
+ 		//TCSUPPORT_CPU_MT7505
+-		#if defined(CONFIG_MIPS_MT_SMP) || defined(CONFIG_MIPS_MT_SMTC)
++		#if defined(CONFIG_MIPS_MT_SMP)
+ 		/*
+ 	 	 * Only MT is using the software interrupts currently, so we just
+ 	 	 * leave them uninitialized for other processors.
+ 	 	 */
+ 		if (cpu_has_mipsmt) {
+ 			if ((i == SI_SWINT1_INT0) || (i == SI_SWINT1_INT1) ||
+-				(i == SI_SWINT_INT0) || (i == SI_SWINT_INT1)) { 
+-				set_irq_chip(i, &mips_mt_cpu_irq_controller);
++				(i == SI_SWINT_INT0) || (i == SI_SWINT_INT1)) {
++				irq_set_chip(i, &mips_mt_cpu_irq_controller);
+ 				continue;
+ 			}
+ 		}
+ 
+ 		if ((i == SI_TIMER_INT) || (i == SI_TIMER1_INT))
+-			set_irq_chip_and_handler(i, &tc3162_irq_chip,
++			irq_set_chip_and_handler(i, &tc3162_irq_chip,
+ 					 handle_percpu_irq);
+ 		else
+ 		#endif
+-			set_irq_chip_and_handler(i, &tc3162_irq_chip,
++			irq_set_chip_and_handler(i, &tc3162_irq_chip,
+ 					 handle_level_irq);
+ #else
+-		set_irq_chip_and_handler(i, &tc3162_irq_chip,
++		irq_set_chip_and_handler(i, &tc3162_irq_chip,
+ 					 handle_level_irq);
+ #endif
+ 	}
+@@ -464,7 +458,7 @@ void __init arch_init_irq(void)
+ #ifdef CONFIG_MIPS_TC3262
+ 	if (cpu_has_veic || cpu_has_vint) {
+ 		write_c0_status((read_c0_status() & ~ST0_IM ) |
+-			                (STATUSF_IP0 | STATUSF_IP1)); 
++			                (STATUSF_IP0 | STATUSF_IP1));
+ 
+ 		/* register irq dispatch functions */
+ 		for (i = 0; i < NR_IRQS; i++)
+@@ -481,7 +475,7 @@ void __init arch_init_irq(void)
+ #endif
+ }
+ 
+-__IMEM asmlinkage void plat_irq_dispatch(void)
++asmlinkage void plat_irq_dispatch(void)
+ {
+ #ifdef CONFIG_MIPS_TC3262
+ 	int irq = ((read_c0_cause() & ST0_IM) >> 10);
+diff --git a/arch/mips/tc3162/malta-smp.c b/arch/mips/tc3162/malta-smp.c
+index af388ff1c..1dadfc93d 100644
+--- a/arch/mips/tc3162/malta-smp.c
++++ b/arch/mips/tc3162/malta-smp.c
+@@ -21,6 +21,7 @@
+  */
+ #include <linux/smp.h>
+ #include <linux/interrupt.h>
++#include <asm/setup.h>
+ 
+ #include <asm/tc3162/tc3162.h>
+ 
+@@ -49,41 +50,31 @@ static irqreturn_t ipi_resched_interrupt(int irq, void *dev_id)
+ 
+ static irqreturn_t ipi_call_interrupt(int irq, void *dev_id)
+ {
+-	smp_call_function_interrupt();
++	generic_smp_call_function_interrupt();
+ 
+ 	return IRQ_HANDLED;
+ }
+ 
+-static struct irqaction irq_resched = {
+-	.handler	= ipi_resched_interrupt,
+-	.flags		= IRQF_DISABLED | IRQF_PERCPU,
+-	.name		= "IPI_resched"
+-};
+-
+-static struct irqaction irq_call = {
+-	.handler	= ipi_call_interrupt,
+-	.flags		= IRQF_DISABLED | IRQF_PERCPU,
+-	.name		= "IPI_call"
+-};
+-
+-void __init arch_init_ipiirq(int irq, struct irqaction *action)
+-{
+-	setup_irq(irq, action);
+-	set_irq_handler(irq, handle_percpu_irq);
+-}
+-
+ void __init vsmp_int_init(void)
+ {
+-	//printk("vsmp_int_init\n");
++	printk("vsmp_int_init.\n");
+ 	set_vi_handler(MIPS_CPU_IPI_RESCHED_IRQ, ipi_resched_dispatch);
+ 	set_vi_handler(MIPS_CPU_IPI_CALL_IRQ, ipi_call_dispatch);
+-	arch_init_ipiirq(MIPS_CPU_IPI_RESCHED_IRQ, &irq_resched);
+-	arch_init_ipiirq(MIPS_CPU_IPI_CALL_IRQ, &irq_call);
+-
++	if (request_irq(MIPS_CPU_IPI_RESCHED_IRQ, ipi_resched_interrupt,
++			IRQF_PERCPU, "IPI_resched", NULL))
++		printk(KERN_ALERT "Filed to request IPI_resched interrupt.\n");
++	else
++		irq_set_handler(MIPS_CPU_IPI_RESCHED_IRQ, handle_percpu_irq);
++	if (request_irq(MIPS_CPU_IPI_CALL_IRQ, ipi_call_interrupt,
++			IRQF_PERCPU, "IPI_call", NULL))
++		printk(KERN_ALERT "Filed to request IPI_call interrupt.\n");
++	else
++		irq_set_handler(MIPS_CPU_IPI_CALL_IRQ, handle_percpu_irq);
+ 	VPint(CR_INTC_IMR) |=  (1 << (SI_SWINT1_INT0-1));
+    	VPint(CR_INTC_IMR) |=  (1 << (SI_SWINT1_INT1-1));
+ }
+ 
++#if 0
+ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+ {
+ 	cpumask_t tmask;
+@@ -108,7 +99,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+ 	{
+ 		*(unsigned long *)affinity = 0x1;
+ 	}
+-	
++
+ 	printk("\r\n\r\n%s affinity changed value is %08x\r\n\r\n", __FUNCTION__, *affinity);
+ #endif
+ 
+@@ -138,19 +129,19 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+ 		{
+ 			cpu_clear(cpu, tmask);
+ 			printk("%s: cpu %d cpu_clear\r\n", __FUNCTION__, cpu);
+-			
++
+ 		}
+ 		else {
+ 			printk("%s: cpu %d vpe_id %d \r\n", __FUNCTION__, cpu, cpu_data[cpu].vpe_id);
+-#if 0			
++#if 0
+ 			if (cpu_data[cpu].vpe_id == 0)
+ 				irq_vpe0++;
+-			else 
++			else
+ 				irq_vpe1++;
+ #else
+ 			if(cpu == 0)
+ 				irq_vpe0++;
+-			else 
++			else
+ 				irq_vpe1++;
+ #endif
+ 		}
+@@ -159,7 +150,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+ 	cpumask_copy(irq_desc[irq].affinity, &tmask);
+ 
+ 	printk("%s: irq_vpe0 %d irq_vpe1 %d \r\n", __FUNCTION__, irq_vpe0, irq_vpe1);
+-	
++
+ 
+ 	/* change IRQ binding to VPE0 or VPE1 */
+ 	offset1= 32 - irq;
+@@ -184,6 +175,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+ 	printk("%s: irq num %d \r\n", __FUNCTION__, irq);
+ 	return 0;
+ }
++#endif
+ 
+ #endif /* CONFIG_MIPS_MT_SMP */
+ 
+diff --git a/arch/mips/tc3162/prom.c b/arch/mips/tc3162/prom.c
+index 28047b556..c9e34be72 100644
+--- a/arch/mips/tc3162/prom.c
++++ b/arch/mips/tc3162/prom.c
+@@ -1,7 +1,8 @@
+ #include <linux/init.h>
+ #include <linux/mm.h>
+ #include <linux/sched.h>
+-#include <linux/bootmem.h>
++// TODO: No such file.
++// #include <linux/bootmem.h>
+ #include <linux/blkdev.h>
+ 
+ #include <asm/mipsmtregs.h>
+@@ -315,7 +316,8 @@ void __init prom_init(void)
+ 	//mips_machtype = MACH_TRENDCHIP_TC3162;
+ 
+ #ifdef CONFIG_MIPS_MT_SMP
+-	register_smp_ops(&vsmp_smp_ops);
++	if (register_vsmp_smp_ops())
++		panic("Failed to register_vsmp_smp_ops()");
+ #endif
+     if(isEN751221)
+ 		cpu_dma_round_robin(ENABLE);
+@@ -326,13 +328,13 @@ void __init prom_free_prom_memory(void)
+ 	/* We do not have any memory to free */
+ }
+ 
+-int prom_putchar(char data)
++void prom_putchar(char data)
+ {
+ 	while (!(LSR_INDICATOR & LSR_THRE))
+ 		;
+ 	VPchar(CR_UART_THR) = data;
+-	return 1;
+ }
++
+ EXPORT_SYMBOL(prom_putchar);
+ 
+ char prom_getchar(void)
+diff --git a/arch/mips/tc3162/time2.c b/arch/mips/tc3162/time2.c
+index 8bad1335b..db539b05c 100644
+--- a/arch/mips/tc3162/time2.c
++++ b/arch/mips/tc3162/time2.c
+@@ -34,7 +34,7 @@
+ #include <asm/div64.h>
+ #include <asm/cpu.h>
+ #include <asm/time.h>
+-
++#include <asm/setup.h>
+ #include <asm/tc3162/tc3162.h>
+ 
+ unsigned long cpu_khz;
+@@ -185,7 +185,7 @@ irqreturn_t mips_perf_interrupt(int irq, void *dev_id)
+ 
+ static struct irqaction perf_irqaction = {
+ 	.handler = mips_perf_interrupt,
+-	.flags = IRQF_DISABLED | IRQF_PERCPU,
++	.flags = IRQF_PERCPU,
+ 	.name = "performance",
+ };
+ extern struct clocksource clocksource_mips;
+@@ -241,11 +241,6 @@ irqreturn_t watchdog_timer_interrupt(int irq, void *dev_id){
+ 	return real_watchdog_timer_interrupt(irq, dev_id);
+ }
+ #endif
+-static struct irqaction watchdog_timer_irqaction = {
+-	.handler = watchdog_timer_interrupt,
+-	.flags = IRQF_DISABLED ,
+-	.name = "watchdog",
+-};
+ 
+ static void watchdog_timer_dispatch(void)
+ {
+@@ -290,12 +285,6 @@ irqreturn_t bus_timeout_interrupt(int irq, void *dev_id)
+ 	return IRQ_HANDLED;
+ }
+ 
+-static struct irqaction bus_timeout_irqaction = {
+-	.handler = bus_timeout_interrupt,
+-	.flags = IRQF_DISABLED ,
+-	.name = "bus timeout",
+-};
+-
+ static void bus_timeout_dispatch(void)
+ {
+ 	do_IRQ(BUS_TOUT_INT);
+@@ -305,7 +294,8 @@ static void bus_timeout_dispatch(void)
+    this will be called.
+    c0_compare_interrupt will be set as the handler of returned
+    interrupt.  */
+-unsigned int __cpuinit get_c0_compare_int(void)
++/* TODO: May be set the timer somewhere else? */
++unsigned int get_c0_compare_int(void)
+ {
+ 	if ((get_current_vpe()) && !vpe1_timer_installed) {
+ 		tc3162_enable_irq(SI_TIMER1_INT);
+@@ -321,7 +311,7 @@ unsigned int __cpuinit get_c0_compare_int(void)
+ 	return mips_cpu_timer_irq;
+ }
+ 
+-static cycle_t cputmr_hpt_read(void)
++static u64 cputmr_hpt_read(void)
+ {
+ 	return regRead32(cputmr_cnt[0]);
+ }
+@@ -346,9 +336,9 @@ static void __init cputmr_hpt_timer_init(void)
+ 
+ static void cputmr_timer_ack(void)
+ {
+-#if defined(CONFIG_MIPS_MT_SMP) || defined(CONFIG_MIPS_MT_SMTC)
++#if defined(CONFIG_MIPS_MT_SMP)
+ 	int cpu = smp_processor_id();
+-	int vpe = cpu_data[cpu].vpe_id;
++	int vpe = cpu_vpe_id(&cpu_data[cpu]);
+ #else
+ 	int cpu = 0;
+ 	int vpe = 0;
+@@ -379,10 +369,11 @@ void __init tc3162_time_init(void)
+ 		regWrite32(CR_WDOG_THSLD, ((3 * TIMERTICKS_1S * SYS_HCLK) * 500)); // (3 * TIMERTICKS_1S * SYS_HCLK) * 1000 / 2
+ 		if (cpu_has_vint)
+ 			set_vi_handler(TIMER5_INT, watchdog_timer_dispatch);
+-		setup_irq(TIMER5_INT, &watchdog_timer_irqaction);
++		if (request_irq(TIMER5_INT, watchdog_timer_interrupt, 0, "watchdog", NULL))
++			printk(KERN_ALERT "Filed to request watchdog interrupt.\n");
+ 
+ 		/* setup bus timeout interrupt */
+-   		//VPint(CR_MON_TMR) |= ((1<<30) | (0xff));
++   		// VPint(CR_MON_TMR) |= ((1<<30) | (0xff));
+ 		if(isMT751020 || isMT7505 || isEN751221)
+ 		{
+ 			regWrite32(CR_MON_TMR, 0xcfffffff);
+@@ -394,7 +385,8 @@ void __init tc3162_time_init(void)
+ 
+ 		if (cpu_has_vint)
+ 			set_vi_handler(BUS_TOUT_INT, bus_timeout_dispatch);
+-		setup_irq(BUS_TOUT_INT, &bus_timeout_irqaction);
++		if (request_irq(BUS_TOUT_INT, bus_timeout_interrupt, 0, "bus timeout", NULL))
++			printk(KERN_ALERT "Filed to request bus timeout interrupt.\n");
+ 	}
+ 
+ }

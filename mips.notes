@@ -31,6 +31,7 @@ arch/mips/kernel/time.c - rollback
 
 arch/mips/kernel/cpu-probe.c - partially
  Move cpu_wait_en7512 to linux5/arch/mips/kernel/idle.c.
+ TODO.
 
 arch/mips/kernel/cevt-r4k.c - rollback
  mips_timer_ack is for precission timer, but I've disabled it
@@ -171,6 +172,63 @@ arch/mips/ralink/prom.c - new-file, ignore
    WriteReg(_SPI_CONTROLLER_REGS_MANUAL_DFIFO_WDATA, addr_byte)
             0xBFA10000 + 0x0038
 
+arch/mips/ralink/irq.c - new-file, ignore
+ TODO: irq affinity. I do not set irq_chip->set_affinity and hope it will
+ work. See also malta-smp.c.
+
+arch/mips/ralink/time2.c - new-file, ignore
+ I've removed IRQF_DISABLE, it was removed from kernel:
+ http://lists.infradead.org/pipermail/linux-mtd/2015-March/058135.html
+ If routine assumes IRQ disabled, then what? local_irq_enable_in_hardirq()
+ is not longer called: https://lkml.org/lkml/2010/3/25/435
+
+ __cpuinit seems to be deprecated:
+ https://lwn.net/Articles/304687/
+ There is no cpu_data[cpu].vpe_id field. Use cpu_vpe_id(&cpu_data[cpu])
+ https://www.spinics.net/lists/mips/msg51559.html
+
+ Replace setup_irq, which is not present anymore, with request_irq.
+ TODO: What if cpu_has_vint is true, it will register twice?
+  if (cpu_has_vint)
+    set_vi_handler(BUS_TOUT_INT, bus_timeout_dispatch);
+  request_irq(BUST_TOUT_INT, bus_timeout_interrupt, 0, "bus timeout", NULL);
+
+  In linux2.6, cycle_t was u64, from include/linux/clocksource.h.
+
+arch/mips/ralink/malta-smp.c - new-file, ignore
+  Removed IRQF_DISABLE.
+  There is no smp_call_function_interrupt(). In 2.6:
+  void __irq_entry smp_call_function_interrupt(void)
+  {
+        irq_enter();
+        generic_smp_call_function_single_interrupt();
+        generic_smp_call_function_interrupt();
+        irq_exit();
+  }
+  There is:
+  void generic_smp_call_function_single_interrupt(void);
+  #define generic_smp_call_function_interrupt \
+        generic_smp_call_function_single_interrupt
+
+  There is also CONFIG_GENERIC_IRQ_IPI and some similar code in
+  arch/mips/kernel/smc.c. This ipi_call_interrupt will just call
+  generic_smp_call_function_interrupt(). It will not call irq_enter() ..
+
+  MIPS do_IRQ already does irq_enter() .. irq_exit().
+
+  So I will use generic_smp_call_function_interrupt.
+
+  OK. In the end:
+  smp-mt.o: .. undefined reference to `mips_smp_send_ipi_single'
+  smp-mt.o: .. undefined reference to `mips_smp_send_ipi_mask'
+
+  IRQ_MIPS_CPU helps, this selects generic irq ipi.
+
 arch/mips/Kbuild.platforms - ignore
 
 arch/mips/Kconfig - ignore
+ Instead of IRQ_CPU, select IRQ_MIPS_CPU.
+
+arch/mips/kernel/mips-mt-fpaff.c
+ TODO. Incompatible. Something related to irq affinity.
+

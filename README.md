@@ -2,21 +2,21 @@ EN7512 SoC.
 
 Tp-Link Archer VR300 (EN7512) source code: https://www.tp-link.com/it/support/gpl-code/
 
-An attempt at upgrading this code, the part of it required for EN7512, to linux5.
+An attempt at upgrading this code, the part required for EN7512 SoC, to linux5. At the moment TC3262 kernel compiles, but not tested. I do not have USB <-> serial converter, if interested and you live in Moldova or close by, I will accept the converter as donation (I think it is 3.3 V).
+
+Building: `make HOST_CFLAGS='-DTCSUPPORT_CPU_EN7512' linux-rebuild`
+
+* full.diff - patch for Linux 5. Everything, but not later fixes. At the moment without USB/PCI, flash is not enabled and will need fixes, see mtd.txt and mips.notes, drivers.notes
+* full-ct.diff - compile time fixes, etc fixes, apply after full.diff.
+
+For analysis, diffs do not include later fixes, do not need to apply
 
 * mips.files - diff of arch/mips against plain linux-2.6.38, list of changed and new files (`diff -qr` output)
-* mips.diff - does not include new files (`diff -ur`)
-* mips.diff-full - includes new files
-* mips.notes - notes, why certain files or changes were not included.
-* mips5.diff - linux5 arch/mips diff.
+* mips.diff - does not include new files (`diff -ur`), does not include rejects when applied to linux5 or not many
+* mips5.diff - linux5 diff that only include files which were rejected, plus some trivial edits like deleting SMTC
+* linux-5-new - directory with new file, trivial fixes.
 
-To view rejects:
-```
-cd linux5
-mkdir tmp
-patch -p1 -o tmp/mips.apply < ../mips.diff-full
-less tmp/mips.apply.rej
-```
+mips.notes - notes, why certain files or changes were not included, etc.
 
 Upstream linux ethernet driver: drivers/net/ethernet/mediatek/mtk\_eth\_soc.c
 Depends on `ARCH_MEDIATEK || SOC_MT7621 || SOC_MT7620`.
