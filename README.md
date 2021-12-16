@@ -2,19 +2,21 @@ EN7512 SoC.
 
 Tp-Link Archer VR300 (EN7512) source code: https://www.tp-link.com/it/support/gpl-code/
 
-An attempt at upgrading this code, the part required for EN7512 SoC, to linux5. At the moment TC3262 kernel compiles, but not tested. I do not have USB <-> serial converter, if interested and you live in Moldova or close by, I will accept the converter as donation (I think it is 3.3 V).
+An attempt at upgrading this code or the part required for EN7512 SoC, to Linux 5.
 
-Building: `make HOST_CFLAGS='-DTCSUPPORT_CPU_EN7512' linux-rebuild`
+State: TC3262 platform kernel compiles. I did not try to boot it since I do not have USB <-> serial converter at the moment. I live in Moldova, if someone is willing to donate one.
 
-* full.diff - patch for Linux 5. Everything, but not later fixes. At the moment without USB/PCI, flash is not enabled and will need fixes, see mtd.txt and mips.notes, drivers.notes
+* full.diff - patch for plain Linux 5. Does not include later fixes. At the moment without USB/PCI, flash is not enabled and will need fixes, see mtd.txt and mips.notes, drivers.notes
 * full-ct.diff - compile time fixes, etc fixes, apply after full.diff.
 
-For analysis, diffs do not include later fixes, do not need to apply
+Building with SoC specific defs: `make HOST_CFLAGS='-DTCSUPPORT_CPU_EN7512' linux-rebuild`
 
-* mips.files - diff of arch/mips against plain linux-2.6.38, list of changed and new files (`diff -qr` output)
+For review, diffs do not include later changes
+
+* mips.files - diff of arch/mips against plain linux-2.6.38 that only lists file names. (`diff -qr` output) The diff ignores comment only changes and not only that, see diff script file in the repository.
 * mips.diff - does not include new files (`diff -ur`), does not include rejects when applied to linux5 or not many
-* mips5.diff - linux5 diff that only include files which were rejected, plus some trivial edits like deleting SMTC
-* linux-5-new - directory with new file, trivial fixes.
+* mips5.diff - linux5 diff that only includes files which were rejected when applying mips.files to linux5. Some trivial edits like deleting SMTC
+* linux-5-new - directory with new files that were not present in plain linux, with minor changes.
 
 mips.notes - notes, why certain files or changes were not included, etc.
 
@@ -25,7 +27,7 @@ SOC\_MT7621, SOC\_MT7620 is little endian. VR300 is big endian, although, from K
 
 I did not find datasheet for EN7512.
 
-MT7620 (ralink_mt7620.pdf) ethernet MAC registers and values look similar (did not compare all) to values from bootloader EN7512 ethernet driver (bootloader-en7512-net-src directory).
+MT7620 (docs/ralink_mt7620.pdf) ethernet MAC registers and values look similar (did not compare all) to values from bootloader EN7512 ethernet driver (bootloader-en7512-net-src directory).
 
 My router - Innbox80, PCB photos and some of the serial output: https://saturn.ffzg.hr/rot13/index.cgi?action=display_html;page_name=innbox_v80
 tftp and ssh access can be enabled from Administrator user. The `myrouter` directory contains some files from /proc/. I've also made a copy of /dev/mtdblock*, see tftp.txt. The version of linux is 3.1, while VR300 version is 2.6.
@@ -33,7 +35,7 @@ tftp and ssh access can be enabled from Administrator user. The `myrouter` direc
 WiFi: https://www.mediatek.com/products/broadbandWifi/mt7603e
 - from myrouter/lsmod.txt, mt7603eap module. Upstream linux driver: drivers/net/wireless/mediatek/mt76/mt7603/Kconfig
 
-mediatek-linux-sdk-release-notes.pdf - firmware uploading.
+docs/mediatek-linux-sdk-release-notes.pdf - firmware uploading.
 
 Some SoC specs (see EcoNet): https://wikidevi.wi-cat.ru/MediaTek
 
