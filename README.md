@@ -4,7 +4,7 @@ Tp-Link Archer VR300 (EN7512) source code: https://www.tp-link.com/it/support/gp
 
 An attempt at upgrading this code or the part required for EN7512 SoC, to Linux 5.
 
-State: TC3262 platform kernel compiles. I did not try to boot it since I do not have USB <-> serial converter at the moment. I live in Moldova, if someone is willing to donate one.
+State: TC3262 platform kernel compiles. I did not try booting it since I do not have USB <-> serial converter at the moment. I live in Moldova, if someone is willing to donate one.
 
 * full.diff - patch for plain Linux 5. Does not include later fixes. At the moment without USB/PCI, flash is not enabled and will need fixes, see mtd.txt and mips.notes, drivers.notes
 * full-ct.diff - compile time fixes, etc fixes, apply after full.diff.
@@ -50,10 +50,20 @@ Disclaimer: I did not test this.
 
 Bootloader may support `jump addr` command. The command will call function (jump to) at addr. tftp will save file to `TFTP_BUF_BASE`: 0x80020000 addr. (net/tftpput.c).
 
+```
+$ nm output/build/linux-custom/vmlinux | grep kernel_en
+80020000 T __kernel_entry
+802c48c8 T kernel_entry
+```
+
+`__kernel_entry` will jump to `kernel_entry`. `kernel_entry` is linux entry point. `__kernel_entry` is defined in arch/mips/kernel/head.S under `#if CONFIG_BOOT_RAW`. Selecting TC3262 CPU will "select" this option.
+
+vmlinux includes ELF header. I think arch/mips/boot/vmlinux.bin is vmlinux with ELF header removed (by objcopy) and can be used with `jump` command.
+
 `flash dst src len` command will call `flash_write(dst, len, &retlen, (const unsigned char *) (src))` src should be set to `TFT_BUF_BASE`. dst.. go figure.
 
 On power-up, bootloader calls boot_kernel (init/main.c) which loads image, performs tests and jumps to loaded kernel memory address.
-First, the `trx_header` (mtk/tools/trx/trx.h) struct len, magic, crc32 will be read from flash and compared. `tx_header` address: `flash_base + flash_tclinux_start`. The variables set in flash/flashhal.c, in `*_init` functions. 0x0 + 0x40000 * 2 if `IS_NANDFLASH and TCSUPPORT_BB_NAND`, flash command dst will be 0x80000.
+First, the `trx_header` (mtk/tools/trx/trx.h) struct len, magic, crc32 will be read from flash and compared. `trx_header` address: `flash_base + flash_tclinux_start`. The variables set in flash/flashhal.c, in `*_init` functions. 0x0 + 0x40000 * 2 if `IS_NANDFLASH and TCSUPPORT_BB_NAND`, flash command dst will be 0x80000.
 
 ```
 $ head -9 myrouter/proc/mtd
