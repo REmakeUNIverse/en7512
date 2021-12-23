@@ -4,7 +4,7 @@ Tp-Link Archer VR300 (EN7512) source code: https://www.tp-link.com/it/support/gp
 
 An attempt at upgrading this code or the part required for EN7512 SoC, to Linux 5.
 
-State: TC3262 platform kernel compiles. I did not try booting it since I do not have USB <-> serial converter at the moment. I live in Moldova, if someone is willing to donate one.
+State: TC3262 platform kernel compiles and boots, see boot.log. But then restarts/jumps to bootloader without any error.
 
 * full.diff - patch for plain Linux 5. Does not include later fixes. At the moment without USB/PCI, flash is not enabled and will need fixes, see mtd.txt and mips.notes, drivers.notes
 * full-ct.diff - compile time fixes, etc fixes, apply after full.diff.
@@ -46,8 +46,6 @@ Bootloader sources: mtk/bootrom.
 
 Emacs modes for hiding {} blocks (hs-minor-mode), for hiding ifdefs (hide-ifdef-mode), will be helpfull. The sources include SPI and NAND code, 7512 ethernet code, even leds (light diods) IO configs.
 
-Disclaimer: I did not test this.
-
 Bootloader may support `jump addr` command. The command will call function (jump to) at addr. tftp will save file to `TFTP_BUF_BASE`: 0x80020000 addr. (net/tftpput.c).
 
 ```
@@ -58,7 +56,11 @@ $ nm output/build/linux-custom/vmlinux | grep kernel_en
 
 `__kernel_entry` will jump to `kernel_entry`. `kernel_entry` is linux entry point. `__kernel_entry` is defined in arch/mips/kernel/head.S under `#if CONFIG_BOOT_RAW`. Selecting TC3262 CPU will "select" this option.
 
-vmlinux includes ELF header. I think arch/mips/boot/vmlinux.bin is vmlinux with ELF header removed (by objcopy) and can be used with `jump` command.
+vmlinux includes ELF header. arch/mips/boot/vmlinux.bin is vmlinux with ELF header removed (by objcopy) and can be used with `jump` command.
+
+When vmblinux.bin is uploaded, tftp will not write the file to flash and will complain that file name is invalid, but that is OK and `jump 80020000` command can be called.
+
+Did not test this yet:
 
 `flash dst src len` command will call `flash_write(dst, len, &retlen, (const unsigned char *) (src))` src should be set to `TFT_BUF_BASE`. dst.. go figure.
 

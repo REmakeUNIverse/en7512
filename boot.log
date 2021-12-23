@@ -1,0 +1,82 @@
+
+Starting the TFTP download...
+..........................................................................................................
+Total 3457200 (0x34C0B0) bytes received
+Received file: vmlinux.bin
+rcvdata_size = 3457200
+start = 0x80020000
+Invalid filename, upload failed
+
+Valid filename: Bootloader  : tcboot.bin				   
+                Linux Kernel: tclinux.bin
+...
+
+bldr> jump 80020000
+Jump to 80020000
+Linux version 5.9.9 (vzdor@bigdeb) (mips-buildroot-linux-uclibc-gcc.br_real (Buildroot 2021.11-321-g3d605443ce) 10.3.0, GNU ld (GNU Binutils) 2.36.1) #2 SMP Wed Dec 15 23:08:53 EET 2021
+flash_init: flash_base:b0000000 
+memsize:120MB
+EcoNet EN751221 SOC prom init
+printk: bootconsole [early0] enabled
+CPU0 revision is: 00019558 (MIPS 34Kc)
+Wasting 1024 bytes for tracking 32 unused pages
+Detected 1 available secondary CPU(s)
+Primary instruction cache 64kB, VIPT, 4-way, linesize 32 bytes.
+Primary data cache 32kB, 4-way, VIPT, cache aliases, linesize 32 bytes
+Zone ranges:
+  Normal   [mem 0x0000000000020000-0x00000000077fffff]
+Movable zone start for each node
+Early memory node ranges
+  node   0: [mem 0x0000000000020000-0x00000000077fffff]
+Initmem setup node 0 [mem 0x0000000000020000-0x00000000077fffff]
+percpu: Embedded 12 pages/cpu s24752 r0 d24400 u49152
+Built 1 zonelists, mobility grouping on.  Total pages: 30448
+Kernel command line:  es=1
+Dentry cache hash table entries: 16384 (order: 4, 65536 bytes, linear)
+Inode-cache hash table entries: 8192 (order: 3, 32768 bytes, linear)
+Writing ErrCtl register=0007e000
+Readback ErrCtl register=0007e000
+nmi base is 804b4200
+mem auto-init: stack:off, heap alloc:off, heap free:off
+Memory: 117988K/122752K available (2735K kernel code, 108K rwdata, 388K rodata, 156K init, 190K bss, 4764K reserved, 0K cma-reserved)
+SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
+rcu: Hierarchical RCU implementation.
+rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+NR_IRQS: 64
+vsmp_int_init.
+random: get_random_bytes called from start_kernel+0x320/0x4dc with crng_init=0
+CPU frequency 900.00 MHz
+clocksource: MIPS: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 4247245437 ns
+sched_clock: 32 bits at 450MHz, resolution 2ns, wraps every 4772186110ns
+Console: colour dummy device 80x25
+printk: console [tty0] enabled
+printk: bootconsole [early0] disabled
+BGA IC
+Xtal:1
+DDR3 init.
+DRAMC init done. 
+Calculate size.
+DRAM size=128MB
+Set new TRFC.
+
+7512DRAMC V1.2.2 (0)
+
+
+EN751221 at Wed Jun 24 18:00:57 CST 2020 version 1.8 free bootbase
+
+Memory size 128MB
+
+Set SPI Clock to 50 Mhz
+spi_nand_probe: mfr_id=0xc8, dev_id=0x21
+Using Flash ECC.
+Detected SPI NAND Flash : _SPI_NAND_DEVICE_ID_F50L1G, Flash Size=0x8000000
+bmt pool size: 81 
+BMT & BBT Init Success 
+
+
+>>>> [get_env_info] hw_id:InnboxE80_PW2
+>>>> [set_gpio_define] g_hw_id:InnboxE80_PW2
+Reset button GPIO is: 0
+Press any key in 3 secs to enter boot command mode.
+..........
+bldr> 
