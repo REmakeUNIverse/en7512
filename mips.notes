@@ -259,6 +259,9 @@ arch/mips/ralink/malta-smp.c - new-file, ignore
   So I've disabled IRQ_MIPS_CPU altogether and implemented missing
   calls.
 
+  TODO: There is IRQ_MIPS_CPU will also enable generic affinity and
+  I did not upgrade affinity code, may be generic will be useful.
+
 arch/mips/Kbuild.platforms - ignore
 
 arch/mips/Kconfig - ignore
