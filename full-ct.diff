@@ -12,7 +12,7 @@ index 0ee0abb31..20480659f 100644
  # include the platform specific files
  include $(patsubst %, $(srctree)/arch/mips/%/Platform, $(platform-y))
 diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
-index d085c11f2..e77f5990d 100644
+index d085c11f2..0c21593a8 100644
 --- a/arch/mips/Kconfig
 +++ b/arch/mips/Kconfig
 @@ -629,7 +629,7 @@ config MIPS_TC3262
@@ -20,7 +20,7 @@ index d085c11f2..e77f5990d 100644
  	select CSRC_R4K
  	select DMA_NONCOHERENT
 -	select IRQ_CPU
-+	select IRQ_MIPS_CPU
++	# select IRQ_MIPS_CPU
  	# select HW_HAS_PCI
  	# select SWAP_IO_SPACE
  	select SYS_HAS_CPU_MIPS32_R1
@@ -102,7 +102,7 @@ index 4e5082249..cab07770a
  load-$(CONFIG_MIPS_TC3262) += $(KERNEL_START_ADDR)
  else
 diff --git a/arch/mips/tc3162/irq.c b/arch/mips/tc3162/irq.c
-index 5292d8e7a..4fd53c546 100644
+index 5292d8e7a..008380908 100644
 --- a/arch/mips/tc3162/irq.c
 +++ b/arch/mips/tc3162/irq.c
 @@ -13,6 +13,7 @@
@@ -181,7 +181,7 @@ index 5292d8e7a..4fd53c546 100644
  
  	return 0;
  }
-@@ -92,36 +94,36 @@ static unsigned int mips_mt_cpu_irq_startup(unsigned int irq)
+@@ -92,36 +94,76 @@ static unsigned int mips_mt_cpu_irq_startup(unsigned int irq)
   * While we ack the interrupt interrupts are disabled and thus we don't need
   * to deal with concurrency issues.  Same for mips_cpu_irq_end.
   */
@@ -199,6 +199,45 @@ index 5292d8e7a..4fd53c546 100644
  	evpe(vpflags);
 -	mask_mips_mt_irq(irq);
 +	mask_mips_mt_irq(d);
++}
++
++void tc3162_mt_send_ipi(unsigned int irq, unsigned int cpu)
++{
++	unsigned long flags;
++	int vpflags;
++	int cpu_irq = 0;
++
++	local_irq_save(flags);
++
++	/* We can only send IPIs to VPEs within the local core */
++	WARN_ON(!cpus_are_siblings(smp_processor_id(), cpu));
++
++	/* See how MIPS_CPU_IPI_CALL_IRQ and RESCHED interrupts
++	   defined in malta-smp.
++	   MIPS_CPU_IPI_CALL_IRQ = SI_SWINT_INT1. */
++	if ((irq == SI_SWINT1_INT1) || (irq == SI_SWINT_INT1))
++		cpu_irq = 1;
++
++	vpflags = dvpe();
++	settc(cpu_vpe_id(&cpu_data[cpu]));
++	write_vpe_c0_cause(read_vpe_c0_cause() | (C_SW0 << cpu_irq));
++	evpe(vpflags);
++
++	local_irq_restore(flags);
++}
++
++/* GENERIC_IRQ_CHIP does something similar but with assumption that
++   SW interrupts begin from 0.
++   TC3262 SW interrupts begin from 2 and from 7.
++
++   TODO: Looking at malta-smp.c, the handlers assigned only to
++   SI_SWINT1_INT1 and _INT0 interrupts. If irqdomain can map
++   irq -> hwirq, 7 -> 0, then may be generic chip can be used.
++
++   A slightly modified mips_mt_send_ipi from GENERIC_IRQ_CHIP. */
++static void mips_mt_send_ipi(struct irq_data *d, unsigned int cpu)
++{
++	tc3162_mt_send_ipi(d->irq, cpu);
  }
  
  static struct irq_chip mips_mt_cpu_irq_controller = {
@@ -215,6 +254,7 @@ index 5292d8e7a..4fd53c546 100644
 +	.irq_mask_ack	= mips_mt_cpu_irq_ack,
 +	.irq_unmask	= unmask_mips_mt_irq,
 +	.irq_eoi	= unmask_mips_mt_irq,
++	.ipi_send_single = mips_mt_send_ipi
  };
  
  #define __BUILD_IRQ_DISPATCH(irq_n) \
@@ -229,7 +269,7 @@ index 5292d8e7a..4fd53c546 100644
  
  /* pre-built 64 irq dispatch function */
  __BUILD_IRQ_DISPATCH(0)
-@@ -260,8 +262,9 @@ __BUILD_IRQ_DISPATCH_FUNC(63)
+@@ -260,8 +302,9 @@ __BUILD_IRQ_DISPATCH_FUNC(63)
  
  #endif
  
@@ -240,7 +280,7 @@ index 5292d8e7a..4fd53c546 100644
  #ifdef CONFIG_MIPS_TC3262
  	unsigned long flags;
  	unsigned long int tmp;
-@@ -300,19 +303,16 @@ __IMEM static inline void unmask_mips_irq(unsigned int irq)
+@@ -300,19 +343,16 @@ __IMEM static inline void unmask_mips_irq(unsigned int irq)
  #endif
  }
  
@@ -262,7 +302,7 @@ index 5292d8e7a..4fd53c546 100644
  		if (irq == SI_TIMER_INT)
  			irq = SI_TIMER1_INT;
  	}
-@@ -396,29 +396,23 @@ void tc3162_disable_irq(unsigned int irq)
+@@ -396,29 +436,23 @@ void tc3162_disable_irq(unsigned int irq)
  }
  EXPORT_SYMBOL(tc3162_disable_irq);
  
@@ -301,7 +341,7 @@ index 5292d8e7a..4fd53c546 100644
  };
  
  extern void vsmp_int_init(void);
-@@ -435,28 +429,28 @@ void __init arch_init_irq(void)
+@@ -435,28 +469,28 @@ void __init arch_init_irq(void)
  	for (i = 0; i < NR_IRQS; i++) {
  #ifdef CONFIG_MIPS_TC3262
  		//TCSUPPORT_CPU_MT7505
@@ -336,7 +376,7 @@ index 5292d8e7a..4fd53c546 100644
  					 handle_level_irq);
  #endif
  	}
-@@ -464,7 +458,7 @@ void __init arch_init_irq(void)
+@@ -464,7 +498,7 @@ void __init arch_init_irq(void)
  #ifdef CONFIG_MIPS_TC3262
  	if (cpu_has_veic || cpu_has_vint) {
  		write_c0_status((read_c0_status() & ~ST0_IM ) |
@@ -345,7 +385,7 @@ index 5292d8e7a..4fd53c546 100644
  
  		/* register irq dispatch functions */
  		for (i = 0; i < NR_IRQS; i++)
-@@ -481,7 +475,7 @@ void __init arch_init_irq(void)
+@@ -481,7 +515,7 @@ void __init arch_init_irq(void)
  #endif
  }
  
@@ -355,24 +395,49 @@ index 5292d8e7a..4fd53c546 100644
  #ifdef CONFIG_MIPS_TC3262
  	int irq = ((read_c0_cause() & ST0_IM) >> 10);
 diff --git a/arch/mips/tc3162/malta-smp.c b/arch/mips/tc3162/malta-smp.c
-index af388ff1c..1dadfc93d 100644
+index af388ff1c..abc57628e 100644
 --- a/arch/mips/tc3162/malta-smp.c
 +++ b/arch/mips/tc3162/malta-smp.c
-@@ -21,6 +21,7 @@
+@@ -19,8 +19,10 @@
+  *  59 Temple Place - Suite 330, Boston MA 02111-1307, USA.
+  *
   */
++#include <linux/sched.h>
  #include <linux/smp.h>
  #include <linux/interrupt.h>
 +#include <asm/setup.h>
  
  #include <asm/tc3162/tc3162.h>
  
-@@ -49,41 +50,31 @@ static irqreturn_t ipi_resched_interrupt(int irq, void *dev_id)
+@@ -29,61 +31,86 @@
+ #define MIPS_CPU_IPI_RESCHED_IRQ 	SI_SWINT_INT0		/* SW int 0 for resched */
+ #define MIPS_CPU_IPI_CALL_IRQ 		SI_SWINT_INT1		/* SW int 1 for call */
+ 
+-
+ static void ipi_resched_dispatch(void)
+ {
+-	//printk("ipi_resched_dispatch\n");
+ 	do_IRQ(MIPS_CPU_IPI_RESCHED_IRQ);
+ }
+ 
+ static void ipi_call_dispatch(void)
+ {
+-	//printk("ipi_call_dispatch\n");
+ 	do_IRQ(MIPS_CPU_IPI_CALL_IRQ);
+ }
+ 
++/* See smp.c GENERIC_IRQ_IPI. */
+ static irqreturn_t ipi_resched_interrupt(int irq, void *dev_id)
+ {
++	scheduler_ipi();
+ 	return IRQ_HANDLED;
+ }
  
  static irqreturn_t ipi_call_interrupt(int irq, void *dev_id)
  {
 -	smp_call_function_interrupt();
+-
 +	generic_smp_call_function_interrupt();
- 
  	return IRQ_HANDLED;
  }
  
@@ -381,38 +446,69 @@ index af388ff1c..1dadfc93d 100644
 -	.flags		= IRQF_DISABLED | IRQF_PERCPU,
 -	.name		= "IPI_resched"
 -};
--
++/* The two functions will be assigned to vsmp_smp_ops, see
++   kernel/smp-mt.c. */
++void mips_smp_send_ipi_single(int cpu, unsigned int action)
++{
++	mips_smp_send_ipi_mask(cpumask_of(cpu), action);
++}
+ 
 -static struct irqaction irq_call = {
 -	.handler	= ipi_call_interrupt,
 -	.flags		= IRQF_DISABLED | IRQF_PERCPU,
 -	.name		= "IPI_call"
 -};
--
++extern void tc3162_mt_send_ipi(unsigned int irq, unsigned int cpu);
+ 
 -void __init arch_init_ipiirq(int irq, struct irqaction *action)
--{
++void mips_smp_send_ipi_mask(const struct cpumask *mask, unsigned int action)
+ {
 -	setup_irq(irq, action);
 -	set_irq_handler(irq, handle_percpu_irq);
--}
--
++	unsigned int irq;
++	int cpu;
++
++	switch (action) {
++	case SMP_CALL_FUNCTION:
++		irq = MIPS_CPU_IPI_CALL_IRQ;
++		break;
++
++	case SMP_RESCHEDULE_YOURSELF:
++		irq = MIPS_CPU_IPI_RESCHED_IRQ;
++		break;
++
++	default:
++		BUG();
++	}
++
++	for_each_cpu(cpu, mask)
++		tc3162_mt_send_ipi(irq, cpu);
++}
++
++
++static void smp_ipi_init_one(unsigned int irq, const char *name,
++			     irq_handler_t handler)
++{
++	int ret;
++	irq_set_handler(irq, handle_percpu_irq);
++	ret = request_irq(irq, handler, IRQF_PERCPU, name, NULL);
++	BUG_ON(ret);
+ }
+ 
  void __init vsmp_int_init(void)
  {
 -	//printk("vsmp_int_init\n");
 +	printk("vsmp_int_init.\n");
++
++	/* TODO: Why not set dispatch handlers in irq.c? */
  	set_vi_handler(MIPS_CPU_IPI_RESCHED_IRQ, ipi_resched_dispatch);
  	set_vi_handler(MIPS_CPU_IPI_CALL_IRQ, ipi_call_dispatch);
 -	arch_init_ipiirq(MIPS_CPU_IPI_RESCHED_IRQ, &irq_resched);
 -	arch_init_ipiirq(MIPS_CPU_IPI_CALL_IRQ, &irq_call);
--
-+	if (request_irq(MIPS_CPU_IPI_RESCHED_IRQ, ipi_resched_interrupt,
-+			IRQF_PERCPU, "IPI_resched", NULL))
-+		printk(KERN_ALERT "Filed to request IPI_resched interrupt.\n");
-+	else
-+		irq_set_handler(MIPS_CPU_IPI_RESCHED_IRQ, handle_percpu_irq);
-+	if (request_irq(MIPS_CPU_IPI_CALL_IRQ, ipi_call_interrupt,
-+			IRQF_PERCPU, "IPI_call", NULL))
-+		printk(KERN_ALERT "Filed to request IPI_call interrupt.\n");
-+	else
-+		irq_set_handler(MIPS_CPU_IPI_CALL_IRQ, handle_percpu_irq);
++
++	smp_ipi_init_one(MIPS_CPU_IPI_RESCHED_IRQ, "IPI_resched", ipi_resched_interrupt);
++	smp_ipi_init_one(MIPS_CPU_IPI_CALL_IRQ, "IPI_call", ipi_call_interrupt);
+ 
  	VPint(CR_INTC_IMR) |=  (1 << (SI_SWINT1_INT0-1));
     	VPint(CR_INTC_IMR) |=  (1 << (SI_SWINT1_INT1-1));
  }
@@ -421,7 +517,7 @@ index af388ff1c..1dadfc93d 100644
  int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
  {
  	cpumask_t tmask;
-@@ -108,7 +99,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+@@ -108,7 +135,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
  	{
  		*(unsigned long *)affinity = 0x1;
  	}
@@ -430,7 +526,7 @@ index af388ff1c..1dadfc93d 100644
  	printk("\r\n\r\n%s affinity changed value is %08x\r\n\r\n", __FUNCTION__, *affinity);
  #endif
  
-@@ -138,19 +129,19 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+@@ -138,19 +165,19 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
  		{
  			cpu_clear(cpu, tmask);
  			printk("%s: cpu %d cpu_clear\r\n", __FUNCTION__, cpu);
@@ -454,7 +550,7 @@ index af388ff1c..1dadfc93d 100644
  				irq_vpe1++;
  #endif
  		}
-@@ -159,7 +150,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+@@ -159,7 +186,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
  	cpumask_copy(irq_desc[irq].affinity, &tmask);
  
  	printk("%s: irq_vpe0 %d irq_vpe1 %d \r\n", __FUNCTION__, irq_vpe0, irq_vpe1);
@@ -463,7 +559,7 @@ index af388ff1c..1dadfc93d 100644
  
  	/* change IRQ binding to VPE0 or VPE1 */
  	offset1= 32 - irq;
-@@ -184,6 +175,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
+@@ -184,6 +211,7 @@ int plat_set_irq_affinity(unsigned int irq, const struct cpumask *affinity)
  	printk("%s: irq num %d \r\n", __FUNCTION__, irq);
  	return 0;
  }
@@ -512,7 +608,7 @@ index 28047b556..c9e34be72 100644
  
  char prom_getchar(void)
 diff --git a/arch/mips/tc3162/time2.c b/arch/mips/tc3162/time2.c
-index 8bad1335b..db539b05c 100644
+index 8bad1335b..b644e6986 100644
 --- a/arch/mips/tc3162/time2.c
 +++ b/arch/mips/tc3162/time2.c
 @@ -34,7 +34,7 @@
@@ -613,3 +709,20 @@ index 8bad1335b..db539b05c 100644
  	}
  
  }
+@@ -421,12 +413,14 @@ void __init plat_time_init(void)
+ 	   this. As I see, if this is not done, the timer
+ 	   will stop and clocksource.read will return the same
+ 	   value.
++
+ 	   Until this is done somehow, do not use preceission
+ 	   timer.
++
+ 	   c0_compare_interrupt will be triggered on SI_TIME_INT
+ 	   returned by get_c0_compare_int defined here.
+-	   clocksource.read returns read_c0_count and I do not know
+-	   what this will return in this case. TODO: */
++	   clocksource.read returns read_c0_count at the moment.
++	   TODO: */
+ #if 0
+ 	if (isRT63165 || isRT63365 || isMT751020 || isMT7505 ||isEN751221) {
+ 

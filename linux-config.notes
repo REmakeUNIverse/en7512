@@ -1,0 +1,7 @@
+ printk will disable early0 console when new console is registered,
+ if keep_bootcon cmdline option is not set. So errors/panic will
+ not be displayed.
+ CONFIG_CMDLINE_BOOL=y
+ CONFIG_CMDLINE="keep_bootcon=1"
+ TODO: Set es=1 here instead of string concatenation, if the option
+  required at all.

@@ -1,9 +1,9 @@
 
 Starting the TFTP download...
-..........................................................................................................
-Total 3457200 (0x34C0B0) bytes received
+.........................................................................................................
+Total 3424432 (0x3440B0) bytes received
 Received file: vmlinux.bin
-rcvdata_size = 3457200
+rcvdata_size = 3424432
 start = 0x80020000
 Invalid filename, upload failed
 
@@ -13,12 +13,13 @@ Valid filename: Bootloader  : tcboot.bin
 
 bldr> jump 80020000
 Jump to 80020000
-Linux version 5.9.9 (vzdor@bigdeb) (mips-buildroot-linux-uclibc-gcc.br_real (Buildroot 2021.11-321-g3d605443ce) 10.3.0, GNU ld (GNU Binutils) 2.36.1) #2 SMP Wed Dec 15 23:08:53 EET 2021
+Linux version 5.9.9 (vzdor@bigdeb) (mips-buildroot-linux-uclibc-gcc.br_real (Buildroot 2021.11-321-g3d605443ce) 10.3.0, GNU ld (GNU Binutils) 2.36.1) #6 SMP Fri Dec 24 09:15:52 EET 2021
 flash_init: flash_base:b0000000 
 memsize:120MB
 EcoNet EN751221 SOC prom init
 printk: bootconsole [early0] enabled
 CPU0 revision is: 00019558 (MIPS 34Kc)
+printk: debug: skip boot console de-registration.
 Wasting 1024 bytes for tracking 32 unused pages
 Detected 1 available secondary CPU(s)
 Primary instruction cache 64kB, VIPT, 4-way, linesize 32 bytes.
@@ -31,14 +32,14 @@ Early memory node ranges
 Initmem setup node 0 [mem 0x0000000000020000-0x00000000077fffff]
 percpu: Embedded 12 pages/cpu s24752 r0 d24400 u49152
 Built 1 zonelists, mobility grouping on.  Total pages: 30448
-Kernel command line:  es=1
+Kernel command line:  es=1 keep_bootcon=1
 Dentry cache hash table entries: 16384 (order: 4, 65536 bytes, linear)
 Inode-cache hash table entries: 8192 (order: 3, 32768 bytes, linear)
-Writing ErrCtl register=0007e000
-Readback ErrCtl register=0007e000
+Writing ErrCtl register=00004c60
+Readback ErrCtl register=00004c60
 nmi base is 804b4200
 mem auto-init: stack:off, heap alloc:off, heap free:off
-Memory: 117988K/122752K available (2735K kernel code, 108K rwdata, 388K rodata, 156K init, 190K bss, 4764K reserved, 0K cma-reserved)
+Memory: 117988K/122752K available (2710K kernel code, 104K rwdata, 384K rodata, 188K init, 190K bss, 4764K reserved, 0K cma-reserved)
 SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=2, Nodes=1
 rcu: Hierarchical RCU implementation.
 rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
@@ -50,7 +51,33 @@ clocksource: MIPS: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 4247245
 sched_clock: 32 bits at 450MHz, resolution 2ns, wraps every 4772186110ns
 Console: colour dummy device 80x25
 printk: console [tty0] enabled
-printk: bootconsole [early0] disabled
+Calibrating delay loop... 599.04 BogoMIPS (lpj=1198080)
+pid_max: default: 32768 minimum: 301
+Mount-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+Mountpoint-cache hash table entries: 1024 (order: 0, 4096 bytes, linear)
+34K sync es set to 1.
+Config7: 0x80080500
+rcu: Hierarchical SRCU implementation.
+smp: Bringing up secondary CPUs ...
+Primary instruction cache 64kB, VIPT, 4-way, linesize 32 bytes.
+Primary data cache 32kB, 4-way, VIPT, cache aliases, linesize 32 bytes
+CPU1 revision is: 00019558 (MIPS 34Kc)
+Synchronize counters for CPU 1: done.
+smp: Brought up 1 node, 2 CPUs
+devtmpfs: initialized
+clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+futex hash table entries: 512 (order: 2, 16384 bytes, linear)
+clocksource: Switched to clocksource MIPS
+workingset: timestamp_bits=30 max_order=15 bucket_order=0
+Block layer SCSI generic (bsg) driver version 0.4 loaded (major 254)
+io scheduler mq-deadline registered
+io scheduler kyber registered
+random: fast init done
+List of all partitions:
+No filesystem could mount root, tried: 
+
+Kernel panic - not syncing: VFS: Unable to mount root fs on unknown-block(0,0)
+Machine restart ... 
 BGA IC
 Xtal:1
 DDR3 init.
@@ -78,5 +105,5 @@ BMT & BBT Init Success
 >>>> [set_gpio_define] g_hw_id:InnboxE80_PW2
 Reset button GPIO is: 0
 Press any key in 3 secs to enter boot command mode.
-..........
+..............
 bldr> 

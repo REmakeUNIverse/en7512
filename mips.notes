@@ -224,6 +224,41 @@ arch/mips/ralink/malta-smp.c - new-file, ignore
 
   IRQ_MIPS_CPU helps, this selects generic irq ipi.
 
+  This did not work:
+  Kernel bug detected[#1]:
+  ...
+  [<800319d8>] mips_smp_ipi_allocate+0x218/0x23c
+  [<8034d2d4>] mips_smp_ipi_init+0x30/0x6c
+  [<80349db0>] do_one_initcall+0x84/0x1a0
+  [<80349fc4>] kernel_init_freeable+0x94/0x23c
+  [<802c4a74>] kernel_init+0x10/0x100
+  [<80027068>] ret_from_kernel_thread+0x14/0x1c
+
+  GENERIC_IRQ_IPI requires irqdomain and of_node. IRQ_MIPS_CPU will
+  also select GENERIC_IRQ_CHIP, which adds irqdomain and is similar
+  to irq_chip defined in irq.c, but not exactly the same. For
+  example, TC3262 interrupts:
+  enum interrupt_source
+        {
+                DUMMY_INT,
+                UART_INT,               //0     IPL10
+                PTM_B0_INT,             //1
+                SI_SWINT1_INT0, //2
+                SI_SWINT1_INT1, //3
+		TIMER0_INT,     //4     IPL1
+		...
+		SI_SWINT_INT0,  //7
+                SI_SWINT_INT1,  //8
+
+
+  irq-mips-cpu.c:
+  >The first two are software interrupts
+  While SI_SW* interrupts begin from 2 and from 7. There is irq
+  mapping, hwirq -> irq, I do not know yet how this works.
+
+  So I've disabled IRQ_MIPS_CPU altogether and implemented missing
+  calls.
+
 arch/mips/Kbuild.platforms - ignore
 
 arch/mips/Kconfig - ignore
