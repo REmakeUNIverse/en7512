@@ -1,5 +1,5 @@
 tftp-put:
-	cd buildroot/output/build/linux-custom/arch/mips/boot && \
+	cd buildroot/output/images && \
 		tftp 192.168.1.1 -m binary -c put vmlinux.bin
 
 full-ct-diff:

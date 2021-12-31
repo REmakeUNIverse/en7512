@@ -4,7 +4,7 @@ Tp-Link Archer VR300 (EN7512) source code: https://www.tp-link.com/it/support/gp
 
 An attempt at upgrading this code or the part required for EN7512 SoC, to Linux 5.
 
-State: TC3262 platform kernel compiles and boots, see boot.log. But then restarts/jumps to bootloader since there is no root fs.
+State: TC3262 platform kernel compiles and boots with initramfs and UART console.
 
 * all.diff - patch for plain Linux 5. Does not include later fixes. At the moment without USB/PCI, flash is not enabled and will need fixes, see mtd.txt and mips.notes, drivers.notes
 * full-ct.diff - compile time fixes, etc fixes, apply after full.diff.
