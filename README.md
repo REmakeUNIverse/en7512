@@ -20,56 +20,7 @@ For review, diffs do not include later changes
 
 mips.notes - notes, why certain files or changes were not included, etc.
 
-Upstream linux ethernet driver: drivers/net/ethernet/mediatek/mtk\_eth\_soc.c
-Depends on `ARCH_MEDIATEK || SOC_MT7621 || SOC_MT7620`.
-
-`NET_DSA_MT7530` is ethernet switch driver.
-
-To use these drivers, clk and reset controller have to be defined as described in Device Tree file, for example: https://git.openwrt.org/?p=openwrt/openwrt.git;a=blob;f=target/linux/ramips/dts/mt7621.dtsi;hb=HEAD
-
-From bootloaders 7512\_eth.c, `CR_RSTCTRL2` is used for resetting:
-```
-#define CR_AHB_BASE       	0xBFB00000
-#define CR_RSTCTRL2    		(CR_AHB_BASE + 0x834)
-...
-reg |= (QDMA1_RST | ESW_RST | FE_RST);
-write_reg_word(CR_RSTCTRL2, reg);
-```
-
-7512\_eth.h:
-```
-#define QDMA1_RST    				(1<<1)
-#define QDMA2_RST    				(1<<2)
-#define FE_RST    					(1<<21)
-#define ESW_RST    					(1<<23)
-```
-
-The base address that is set on `ethernet` in dtsi file, for GDMA1:
-```
-#define GDMA1_BASE     		(0xBFB50500)
-```
-
-mtk\_eth\_soc.c:
-```
-eth->base = devm_platform_ioremap_resource(pdev, 0);
-...
-u32 mtk_r32(struct mtk_eth *eth, unsigned reg)
-{
-        return __raw_readl(eth->base + reg);
-}
-... somewhere else:
-mtk_r32(eth, MTK_GDMA_FWD_CFG(i));
-... And
-#define MTK_GDMA_FWD_CFG(x)	(0x500 + (x * 0x1000))
-... x from 0.
-```
-
-And 7512\_eth.h defines GDMA\_FWD\_CFG:
-```
-#define GDMA1_FWD_CFG       (GDMA1_BASE + 0x00)
-```
-
-SOC\_MT7621, SOC\_MT7620 is little endian. VR300 is big endian, although, from Kconfig, VR300 platform allows both.
+eth.md - ethernet driver notes.
 
 I did not find datasheet for EN7512.
 

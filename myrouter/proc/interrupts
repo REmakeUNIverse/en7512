@@ -1,0 +1,14 @@
+           CPU0       CPU1       
+  1:       9237          0      MIPS  TC3162 UART
+  7:          0          0      MIPS  wifi_ratelimit
+  8:       5088       5027      MIPS  IPI_resched
+  9:       1811       1297      MIPS  IPI_call
+ 10:          0          0      MIPS  watchdog
+ 12:          0      13618      MIPS  PCM1
+ 18:          0          0      MIPS  xhci-hcd:usb1
+ 20:     153189          0      MIPS  dmt20
+ 22:        117          0      MIPS  qdma_lan
+ 23:          0          0      MIPS  qdma_wan
+ 24:       4826          0      MIPS  ra0
+ 31:      15277      15305      MIPS  timer
+ 33:          0          0      MIPS  bus timeout
