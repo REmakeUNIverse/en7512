@@ -1,3 +1,9 @@
+commit 1285be2d9f46ae2b66034f443d6d75857f93673a
+Author: Vladimir Zdorovenco <vr.zdor@gmail.com>
+Date:   Mon Jan 10 23:25:45 2022 +0200
+
+    initial.
+
 diff --git a/arch/mips/Kconfig b/arch/mips/Kconfig
 index 0c21593a8..1771e8a6e 100644
 --- a/arch/mips/Kconfig
@@ -79,36 +85,6 @@ index ca465794e..e3fbaa9a8 100644
  	if (!base) {
  		ret = -ENOMEM;
  		goto err_map;
-diff --git a/drivers/net/dsa/mt7530.c b/drivers/net/dsa/mt7530.c
-index 1aaf47a0d..89e1228f8 100644
---- a/drivers/net/dsa/mt7530.c
-+++ b/drivers/net/dsa/mt7530.c
-@@ -1244,9 +1244,14 @@ mt7530_setup(struct dsa_switch *ds)
- 	 * different type of hardware
- 	 */
- 	if (priv->mcm) {
--		reset_control_assert(priv->rstc);
-+		#define VPint *(volatile unsigned long *)
-+		unsigned bits = (1 << 1) | (1 << 21) | (1 << 23),
-+			reg = 0xbfb00000 + 0x834;
-+		VPint(reg) |= bits;
-+		// reset_control_assert(priv->rstc);
- 		usleep_range(1000, 1100);
--		reset_control_deassert(priv->rstc);
-+		VPint(reg) &= ~bits;
-+		// reset_control_deassert(priv->rstc);
- 	} else {
- 		gpiod_set_value_cansleep(priv->reset, 0);
- 		usleep_range(1000, 1100);
-@@ -1623,7 +1628,7 @@ mt7530_probe(struct mdio_device *mdiodev)
- 		priv->rstc = devm_reset_control_get(&mdiodev->dev, "mcm");
- 		if (IS_ERR(priv->rstc)) {
- 			dev_err(&mdiodev->dev, "Couldn't get our reset line\n");
--			return PTR_ERR(priv->rstc);
-+			// return PTR_ERR(priv->rstc);
- 		}
- 	}
- 
 diff --git a/drivers/net/ethernet/mediatek/Kconfig b/drivers/net/ethernet/mediatek/Kconfig
 index 3362b148d..1a9b973f4 100644
 --- a/drivers/net/ethernet/mediatek/Kconfig
@@ -121,142 +97,4 @@ index 3362b148d..1a9b973f4 100644
 +	depends on ARCH_MEDIATEK || SOC_MT7621 || SOC_MT7620 || MIPS_TC3262 
  	help
  	  If you have a Mediatek SoC with ethernet, say Y.
- 
-diff --git a/drivers/net/ethernet/mediatek/mtk_eth_soc.c b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
-index 6d2d60675..f2867e23e 100644
---- a/drivers/net/ethernet/mediatek/mtk_eth_soc.c
-+++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.c
-@@ -2543,9 +2543,11 @@ static void mtk_pending_work(struct work_struct *work)
- 	 */
- 	mtk_hw_deinit(eth);
- 
-+	/* ‘struct device’ has no member named ‘pins’
- 	if (eth->dev->pins)
- 		pinctrl_select_state(eth->dev->pins->p,
- 				     eth->dev->pins->default_state);
-+	*/
- 	mtk_hw_init(eth);
- 
- 	/* restart DMA and enable IRQs */
-@@ -2918,7 +2920,7 @@ static int mtk_probe(struct platform_device *pdev)
- 	eth->soc = of_device_get_match_data(&pdev->dev);
- 
- 	eth->dev = &pdev->dev;
--	eth->base = devm_platform_ioremap_resource(pdev, 0);
-+	eth->base = 0xBFB50000; // devm_platform_ioremap_resource(pdev, 0);
- 	if (IS_ERR(eth->base))
- 		return PTR_ERR(eth->base);
- 
-@@ -2985,7 +2987,7 @@ static int mtk_probe(struct platform_device *pdev)
- 		if (MTK_HAS_CAPS(eth->soc->caps, MTK_SHARED_INT) && i > 0)
- 			eth->irq[i] = eth->irq[0];
- 		else
--			eth->irq[i] = platform_get_irq(pdev, i);
-+			eth->irq[i] = 22; // MAC_INT platform_get_irq(pdev, i);
- 		if (eth->irq[i] < 0) {
- 			dev_err(&pdev->dev, "no IRQ%d resource found\n", i);
- 			return -ENXIO;
-diff --git a/drivers/net/ethernet/mediatek/mtk_eth_soc.h b/drivers/net/ethernet/mediatek/mtk_eth_soc.h
-index 454cfcd46..1f512775a 100644
---- a/drivers/net/ethernet/mediatek/mtk_eth_soc.h
-+++ b/drivers/net/ethernet/mediatek/mtk_eth_soc.h
-@@ -192,7 +192,7 @@
- #define MTK_QRX_DRX_IDX0	0x190C
- 
- /* QDMA Global Configuration Register */
--#define MTK_QDMA_GLO_CFG	0x1A04
-+#define MTK_QDMA_GLO_CFG	0x4004 // 0x1A04
- #define MTK_RX_2B_OFFSET	BIT(31)
- #define MTK_RX_BT_32DWORDS	(3 << 11)
- #define MTK_NDP_CO_PRO		BIT(10)
-@@ -208,7 +208,7 @@
- #define MTK_QDMA_RST_IDX	0x1A08
- 
- /* QDMA Delay Interrupt Register */
--#define MTK_QDMA_DELAY_INT	0x1A0C
-+#define MTK_QDMA_DELAY_INT	0x4058 // 0x1A0C
- 
- /* QDMA Flow Control Register */
- #define MTK_QDMA_FC_THRES	0x1A10
-@@ -217,7 +217,7 @@
- #define FC_THRES_MIN		0x4444
- 
- /* QDMA Interrupt Status Register */
--#define MTK_QDMA_INT_STATUS	0x1A18
-+#define MTK_QDMA_INT_STATUS	0x4050 // 0x1A18
- #define MTK_RX_DONE_DLY		BIT(30)
- #define MTK_RX_DONE_INT3	BIT(19)
- #define MTK_RX_DONE_INT2	BIT(18)
-@@ -237,7 +237,7 @@
- #define MTK_RLS_DONE_INT	BIT(0)
- 
- /* QDMA Interrupt Status Register */
--#define MTK_QDMA_INT_MASK	0x1A1C
-+#define MTK_QDMA_INT_MASK	0x4054 // 0x1A1C
- 
- /* QDMA Interrupt Mask Register */
- #define MTK_QDMA_HRED2		0x1A44
-@@ -306,7 +306,8 @@
- #define RX_DMA_FPORT_MASK	0x7
- 
- /* PHY Indirect Access Control registers */
--#define MTK_PHY_IAC		0x10004
-+// #define MTK_PHY_IAC		0x10004
-+#define MTK_PHY_IAC		0xf01c
- #define PHY_IAC_ACCESS		BIT(31)
- #define PHY_IAC_READ		BIT(19)
- #define PHY_IAC_WRITE		BIT(18)
-@@ -319,7 +320,7 @@
- #define MTK_MUX_TO_ESW		BIT(0)
- 
- /* Mac control registers */
--#define MTK_MAC_MCR(x)		(0x10100 + (x * 0x100))
-+#define MTK_MAC_MCR(x)		(0xb000 + (x * 0x100))
- #define MAC_MCR_MAX_RX_1536	BIT(24)
- #define MAC_MCR_IPG_CFG		(BIT(18) | BIT(16))
- #define MAC_MCR_FORCE_MODE	BIT(15)
-@@ -336,7 +337,7 @@
- #define MAC_MCR_FORCE_LINK_DOWN	(MAC_MCR_FORCE_MODE)
- 
- /* Mac status registers */
--#define MTK_MAC_MSR(x)		(0x10108 + (x * 0x100))
-+#define MTK_MAC_MSR(x)		(0xb008 + (x * 0x100))
- #define MAC_MSR_EEE1G		BIT(7)
- #define MAC_MSR_EEE100M		BIT(6)
- #define MAC_MSR_RX_FC		BIT(5)
-@@ -348,7 +349,7 @@
- #define MAC_MSR_LINK		BIT(0)
- 
- /* TRGMII RXC control register */
--#define TRGMII_RCK_CTRL		0x10300
-+#define TRGMII_RCK_CTRL		0xb200
- #define DQSI0(x)		((x << 0) & GENMASK(6, 0))
- #define DQSI1(x)		((x << 8) & GENMASK(14, 8))
- #define RXCTL_DMWTLAT(x)	((x << 16) & GENMASK(18, 16))
-@@ -360,7 +361,7 @@
- #define NUM_TRGMII_CTRL		5
- 
- /* TRGMII RXC control register */
--#define TRGMII_TCK_CTRL		0x10340
-+#define TRGMII_TCK_CTRL		0xb240
- #define TXCTL_DMWTLAT(x)	((x << 16) & GENMASK(18, 16))
- #define TXC_INV			BIT(30)
- #define TCK_CTRL_RGMII_1000	TXCTL_DMWTLAT(2)
-@@ -372,7 +373,7 @@
- #define  TD_DM_DRVN(x)		(((x) & 0xf) << 4)
- 
- /* TRGMII Interface mode register */
--#define INTF_MODE		0x10390
-+#define INTF_MODE		0xb290
- #define TRGMII_INTF_DIS		BIT(0)
- #define TRGMII_MODE		BIT(1)
- #define TRGMII_CENTRAL_ALIGNED	BIT(2)
-@@ -414,7 +415,7 @@
- #define ETHSYS_TRGMII_MT7621_DDR_PLL	BIT(5)
- 
- /* ethernet reset control register */
--#define ETHSYS_RSTCTRL		0x34
-+#define ETHSYS_RSTCTRL		0x834
- #define RSTCTRL_FE		BIT(6)
- #define RSTCTRL_PPE		BIT(31)
  

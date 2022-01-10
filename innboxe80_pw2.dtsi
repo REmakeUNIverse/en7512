@@ -16,7 +16,7 @@
 	};
 
 	ethernet: ethernet@bfb50000 {
-		compatible = "mediatek,mt7621-eth";
+		compatible = "mediatek,mt7621-eth"; 
 		reg = <0xbfb50000 0x10000>;
 
 		/* eth->clks is empty for mt7621.
@@ -38,7 +38,7 @@
 		gmac0: mac@0 {
 			compatible = "mediatek,eth-mac";
 			reg = <0>;
-			phy-mode = "rgmii";
+			phy-mode = "trgmii";
 
 			fixed-link {
 				speed = <1000>;
@@ -54,12 +54,12 @@
 			phy-mode = "rgmii-rxid";
 		};
 
-		mdio: mdio-bus {
+		 mdio: mdio-bus {
 			#address-cells = <1>;
 			#size-cells = <0>;
-			
+				
 			switch0: switch@1f {
-				compatible = "mediatek,mt7621";
+				compatible = "mediatek,mt7530";
 				#address-cells = <1>;
 				#size-cells = <0>;
 				reg = <0x1f>;
@@ -85,7 +85,7 @@
 					};
 
 					port@2 {
-						status = "disabled";
+						status = "disabled"; 
 						reg = <2>;
 						label = "lan2";
 					};
@@ -97,7 +97,7 @@
 					};
 
 					port@4 {
-						status = "disabled";
+						/* status = "disabled"; */
 						reg = <4>;
 						label = "lan4";
 					};
@@ -106,7 +106,7 @@
 						reg = <6>;
 						label = "cpu";
 						ethernet = <&gmac0>;
-						phy-mode = "rgmii";
+						phy-mode = "trgmii";
 
 						fixed-link {
 							speed = <1000>;

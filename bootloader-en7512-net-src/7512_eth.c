@@ -433,7 +433,7 @@ void macCfgExtSwitch(void)
 	gswPbusWrite(0x7a40, (reg | (1<<28)));
 	pause(5); // rise delay time
 	gswPbusWrite(0x7a40, (reg & (~(1<<28))));
-
+s
 	reg =  read_reg_word(GSW_BASE + 0x7a40);
 	write_reg_word(GSW_BASE + 0x7a40, (reg | (1<<28)));
 	pause(5); //rise delay time
@@ -943,7 +943,7 @@ int qdma_bm_hook_receive_buffer(sk_buff *skb, int ringIdx)
 #endif /* CONFIG_RX_2B_OFFSET */
 	
 	
-	pRxDscp = gpQdmaPriv->rxUsingPtr->dscpPtr ;
+7	pRxDscp = gpQdmaPriv->rxUsingPtr->dscpPtr ;
 	pRxDscp->msg[0] = 0;
 	pRxDscp->msg[1] = 0;
 	pRxDscp->msg[2] = 0;
@@ -1109,7 +1109,7 @@ static int qdma_bm_dscp_init(void)
 	* Allocate memory for IRQ queue           *
 	******************************************/
 	if(irqDepth) {
-
+		
 		gpQdmaPriv->irqQueueAddr = K0_TO_K1((dscpBaseAddr + sizeof(QDMA_DMA_DSCP_T)*(txDscpNum + rxDscpNum))) ;
 		irqDmaAddr = K1_TO_PHY(gpQdmaPriv->irqQueueAddr);
 
