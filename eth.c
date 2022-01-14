@@ -551,12 +551,36 @@ typedef union {
 #define K1_TO_PHY(x)   (((uint32)x) & 0x1fffffff)
 #define K0_TO_K1(x)    (((uint32)x) | 0xa0000000)
 
+typedef struct {
+        uint    pkt_addr ;
+        struct {
+#ifdef __BIG_ENDIAN
+                uint ctx                                : 1 ;
+                uint resv                               : 2 ;
+                uint ctx_ring                   : 1 ;
+                uint ctx_idx                    : 12 ;
+                uint pkt_len                    : 16 ;
+#else
+                uint pkt_len                    : 16 ;
+                uint ctx_idx                    : 12 ;
+                uint ctx_ring                   : 1 ;
+                uint resv                               : 2 ;
+                uint ctx                                : 1 ;
+#endif /* __BIG_ENDIAN */
+        } ctrl ;
+        uint msg[2] ;
+} QDMA_HWFWD_DMA_DSCP_T ;
+
+static QDMA_HWFWD_DMA_DSCP_T *hwfwd_p = NULL;
+static void *hwfwd_buff_p = NULL;
+
 static QDMA_DMA_DSCP_T *dscps_p = NULL; 
 static uint32 *irq_queue_p = NULL;
 
 #define TX0_DSCP_NUM	4
 #define RX0_DSCP_NUM	2
 #define DSCP_NUM	(TX0_DSCP_NUM + RX0_DSCP_NUM)
+#define HWFWD_DSCP_NUM	4
 
 #define QDMA_CSR_TX_DSCP_BASE	0x4008
 #define QDMA_CSR_RX_DSCP_BASE	0x400C
@@ -574,18 +598,17 @@ static uint32 *irq_queue_p = NULL;
 
 static int __c = 0;
 
-static void print_xmit(void) {
+static void print_dscps(struct mtk_eth *eth) {
 	int i;
 	ETH_TX_MSG_T tx_msg;
 	QDMA_DMA_DSCP_T *p;
-
-	printk("tx num %d.", __c);
 	
 	for (i = 0; i < DSCP_NUM; i++) {
 		p = &dscps_p[i];
 		tx_msg.msg[0] = p->msg[0];
 		tx_msg.msg[1] = p->msg[1];
-		printk("done = %d, next = %d, port = %d, msg0 = %d, msg1 = %d, pkt_len = %d",
+		printk("done = %d, next = %d, port = %d,"
+		       "msg0 = %d, msg1 = %d, pkt_len = %d.",
 		       p->ctrl.done, p->next_idx,
 		       tx_msg.raw.fPort,
 		       p->msg[0], p->msg[1],
@@ -593,6 +616,26 @@ static void print_xmit(void) {
 	}
 }
 
+static void print_hw_dscps(struct mtk_eth *eth) {
+        int i;
+        QDMA_HWFWD_DMA_DSCP_T *p;
+        
+        for (i = 0; i < HWFWD_DSCP_NUM; i++) {
+                p = &hwfwd_p[i];
+                printk("pkt_addr = %x, pkt_len = %d, ctx = %d, "
+		       "ctx_id = %d, msg0 = %x, msg1 = %x, "
+		       "buf = %x, addr = %x, ctx_ring = %d.",
+                       p->pkt_addr,
+                       p->ctrl.pkt_len,
+                       p->ctrl.ctx,
+                       p->ctrl.ctx_idx,
+                       p->msg[0],
+                       p->msg[1],
+                       mtk_r32(eth, 0x4024),
+                       mtk_r32(eth, 0x4020),
+                       p->ctrl.ctx_ring);
+        }
+}
 
 void qdma_free_some_tx_dscps(QDMA_DMA_DSCP_T *p) {
 	int i, next_idx;
@@ -634,7 +677,9 @@ static int mtk_tx_map(struct sk_buff *skb, struct net_device *dev)
 
 	__c++;
 	
-	print_xmit();
+	printk("tx num %d.", __c);
+	print_dscps(eth);
+	print_hw_dscps(eth);
 	
 	memset(&tx_msg, 0, sizeof(ETH_TX_MSG_T));
 	tx_msg.raw.fPort = 1;
@@ -785,41 +830,21 @@ static irqreturn_t mtk_handle_irq(int irq, void *_eth)
 	return IRQ_HANDLED;
 }
 
-typedef struct {
-        uint    pkt_addr ;
-        struct {
-#ifdef __BIG_ENDIAN
-                uint ctx                                : 1 ;
-                uint resv                               : 2 ;
-                uint ctx_ring                   : 1 ;
-                uint ctx_idx                    : 12 ;
-                uint pkt_len                    : 16 ;
-#else
-                uint pkt_len                    : 16 ;
-                uint ctx_idx                    : 12 ;
-                uint ctx_ring                   : 1 ;
-                uint resv                               : 2 ;
-                uint ctx                                : 1 ;
-#endif /* __BIG_ENDIAN */
-        } ctrl ;
-        uint msg[2] ;
-} QDMA_HWFWD_DMA_DSCP_T ;
-
-static QDMA_HWFWD_DMA_DSCP_T *hwfwd_p = NULL;
-static void *hwfwd_buff_p = NULL;
-
 #define QDMA_CSR_HWFWD_DSCP_BASE	0x4020
 #define QDMA_CSR_HWFWD_BUFF_BASE	0x4024
 #define QDMA_CSR_HWFWD_DSCP_CFG		0x4028
 #define QDMA_CSR_LMGR_INIT_CFG		0x4030
 
 #define QDMA_CSR_LMGR_START_BIT		BIT(31)
-#define HWFWD_DSCP_NUM			4
 
 static void config_qdma_hwfwd(struct mtk_eth *eth) {
 	dma_addr_t phys_addr;
 	int i, val;
 
+	// It is from qdma_bm_dscp_init. DSCP "done" marking will
+	// not begin if this is not set.
+	mtk_w32(eth, 0x14 << 16, QDMA_CSR_LMGR_INIT_CFG);
+	
 	// Alloc mem for HWFWD_DSCPs.
 	hwfwd_p = dma_alloc_coherent(eth->dev, sizeof(QDMA_HWFWD_DMA_DSCP_T) * HWFWD_DSCP_NUM, &phys_addr, GFP_ATOMIC);
 	memset(hwfwd_p, 0, sizeof(QDMA_HWFWD_DMA_DSCP_T) * HWFWD_DSCP_NUM);
@@ -836,18 +861,18 @@ static void config_qdma_hwfwd(struct mtk_eth *eth) {
 
 	mtk_w32(eth, phys_addr, QDMA_CSR_HWFWD_BUFF_BASE);
 
-	// Config.
-	
-	mtk_w32(eth, HWFWD_DSCP_NUM, QDMA_CSR_LMGR_INIT_CFG);
+	val = mtk_r32(eth, QDMA_CSR_LMGR_INIT_CFG);
+	mtk_w32(eth, val | HWFWD_DSCP_NUM, QDMA_CSR_LMGR_INIT_CFG);
 	// Payload.
 	mtk_w32(eth, 0 << 28, QDMA_CSR_HWFWD_DSCP_CFG);
 	// Set threshold.
 	mtk_w32(eth, 1, QDMA_CSR_HWFWD_DSCP_CFG);
 
 	// Bootloader register value.
-	mtk_w32(eth, 0x1180004, QDMA_CSR_LMGR_INIT_CFG);
+	// mtk_w32(eth, 0x1180004, QDMA_CSR_LMGR_INIT_CFG);
 
-	mtk_w32(eth, QDMA_CSR_LMGR_START_BIT, QDMA_CSR_LMGR_INIT_CFG);	
+	val = mtk_r32(eth, QDMA_CSR_LMGR_INIT_CFG);
+	mtk_w32(eth, val | QDMA_CSR_LMGR_START_BIT, QDMA_CSR_LMGR_INIT_CFG);	
 	// Wait for init.
 	for (i = 0; i < 100; i++) {
 		val = mtk_r32(eth, QDMA_CSR_LMGR_INIT_CFG) & QDMA_CSR_LMGR_START_BIT;
@@ -857,7 +882,7 @@ static void config_qdma_hwfwd(struct mtk_eth *eth) {
 	// TODO: report init failure.
 	
 	// Do not know where to set this.
-	mtk_w32(eth, 0x1180004, QDMA_CSR_LMGR_INIT_CFG);
+	// mtk_w32(eth, 0x1180004, QDMA_CSR_LMGR_INIT_CFG);
 }
 
 #define QDMA_CSR_IRQ_BASE	0x4060
@@ -907,8 +932,8 @@ static int config_qdma(struct mtk_eth *eth)
 
 #if 0
 	config_qdma_irq_queue(eth);
-	config_qdma_hwfwd(eth);
 #endif
+	config_qdma_hwfwd(eth);
 	
 	mtk_w32(eth, 0, QDMA_CSR_TX_CPU_IDX);
 	mtk_w32(eth, 0, QDMA_CSR_TX_DMA_IDX);
@@ -937,7 +962,7 @@ static int config_qdma(struct mtk_eth *eth)
 		| MTK_TX_DMA_EN | MTK_RX_DMA_EN |
 		(1 << 6) | (1 << 4) | (1 << 5) | 
 		(1 << 31)  
-		|(1 << 19),
+		/* |(1 << 19) */,
 		QDMA_CSR_GLB_CFG);
 
 	// GDMA1_FWD_CFG from bootloader mem.
@@ -981,7 +1006,7 @@ static int mtk_open(struct net_device *dev)
 		mtk_gdm_config(eth, MTK_GDMA_TO_PDMA);
 
 		// Uncomment if not GLB_CFG_IRQ_EN BIT(19). 
-		// mtk_tx_irq_enable(eth, MTK_TX_DONE_INT);
+		mtk_tx_irq_enable(eth, MTK_TX_DONE_INT);
 		mtk_rx_irq_enable(eth, MTK_RX_DONE_INT);
 		refcount_set(&eth->dma_refcnt, 1);
 	}

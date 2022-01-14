@@ -6,9 +6,10 @@
 
 The QDMA looks similar, MASK and STATUS registers, GLB CFG, ring DMA pointer.. I could not make the Mediatek driver work. So I've tried using the same structures as Mediatek SDK bootloader ethernet driver. eth.c in this directory. eth.c can be copied over `mtk_eth_soc.c`, also apply eth.diff.
 
-The eth.c driver does not work. It can receive, at least I see that the rx ring buffer entry is marked as done and packet len is set. It will mark tx ring buffer entries as done when sending packets, but I'm monitoring ethernet interface with (iptraf) and nothing shows up.
+Sending packets does not work. When sending, it will begin marking TX DSCPs as done and HWFWDs change, but this continue only up to 6 packet and DSCP marking stops, LMGR STATUS register begin to decrease. For the first 6 packets, nothing shows up in the network monitor, although the diode blinks.
+When there is an incomming packet, RX DSCPS will be market as done and packet len will be set.
 
-I do not load Mediatec mt7530 driver (it can be loaded). I assume the switch is already initialized by the bootloader. The bootloader, lib/commands.c `do_jump` will read bfb40004 register and if it is zero, it will not reset the switch. I can confirm that at least GLB CFG, MASK and some other registers have different values when the register is set to 0.
+I do not load Mediatec mt7530 switch driver. I assume the switch is already initialized by the bootloader. The bootloader, lib/commands.c `do_jump` will read bfb40004 register and if it is zero, the bootloader will not reset the switch. I can confirm that at least GLB CFG, MASK and some other registers have different values.
 
 ```
 # tftp...
@@ -20,24 +21,12 @@ jump 80020000
 
 The driver can operate in two modes. 
 
-1. `GLB_CFG_IRQ_EN BIT(19)` in `GLB_CFG` is set and `TX_INT` in INT_MASK is unset. In this case Irq queue is used and this queue should be cleared once in a while or `IRQ_FULL` is raised.  
-2. `GLB_CFG_IRQ_EN` is not set, `TX_INT` set. In this case `TX_INT` is raised when packet is sent. But it only marks 7 or so ring buffer entries as done and then stops raising TX interrupts and marking entries as done. `INT_MASK_NO_TX0_CPU_DSCP` is set all the time. I could not find how to reset this state or what have to be done.
+1. `GLB_CFG_IRQ_EN BIT(19)` in `GLB_CFG` is set and `TX_INT` in INT_MASK is unset. In this case Irq queue is used and this queue should be cleared once in a while or `IRQ_FULL` is raised. TX DSCPs marking does not stop, but LMGR status begin to decrease after 6'th packet and goes to 0.
+2. `GLB_CFG_IRQ_EN` is not set, `TX_INT` set. In this case `TX_INT` is raised when packet is sent.
 
-To set DMA packet addr 
-```
-phys_addr = dma_map_single(eth->dev, skb->data, skb_headlen(skb), DMA_TO_DEVICE);
-p->pkt_addr = phys_addr;
-```
+#### Clk and SYSCFG registers
 
-Do I have to tell the kernel how to initialize DMA, which address ranges to use? 
-
-In the bootloader, they allocate some space at particular address for all skb's,
-
-#### Etc..
-
-I've tried removing MTK_QDMA form the capabilities, thought may be PDMA will work.
-
-The eth driver will call `mt7621_gmac0_rgmii_adjust` to set `ETHSYS_CLKCFG0` register, but if I try to read from the register, I get DEADBEEF. I tried 0x82c, as defined in tx3162.h, but this too returns DEADBEEF. Same with `ETHSYS_SYSCFG0`.
+Reading from CLKCFG0 and SYSCFG0 registers returns DEADBEEF. I tried 0x82c, as defined in tx3162.h, same thing.
 
 ### mt7530
 
