@@ -22,8 +22,17 @@
 
 #include "mtk_eth_soc.h"
 
-#define MTK_QDMA_INT_STATUS	0x4050
-#define MTK_QDMA_INT_MASK	0x4054
+#define MTK_QDMA_INT_STATUS		0x4050
+#define MTK_QDMA_INT_MASK		0x4054
+// MTK_QDMA_INT_MASK bits.
+#define INT_STATUS_HWFWD_DSCP_LOW	BIT(10)
+#define INT_STATUS_IRQ_FULL		BIT(9)
+#define INT_STATUS_HWFWD_DSCP_EMPTY	BIT(8)
+#define INT_STATUS_NO_RX0_CPU_DSCP      BIT(3)
+#define INT_STATUS_NO_TX0_CPU_DSCP	BIT(2)
+#define INT_STATUS_RX0_DONE		BIT(1)
+#define INT_STATUS_TX0_DONE		BIT(0)
+
 #define MTK_MAC_MCR(x)         (0xb000 + (x * 0x100))
 
 static int mtk_msg_level = -1;
@@ -540,16 +549,13 @@ typedef union {
                 uint32 tco                      : 1;
                 uint32 tso                      : 1;
                 uint32 resv3            : 6;
-                uint32 fPort            : 3;
+                uint32 fport            : 3;
                 uint32 vlanEn           : 1;
                 uint32 vlanTpID         : 2;
                 uint32 vlanTag          : 16;
         } raw ;
         uint msg[2] ;
 } ETH_TX_MSG_T; // The name in 7512 header is ethTxMsg_t.
-
-#define K1_TO_PHY(x)   (((uint32)x) & 0x1fffffff)
-#define K0_TO_K1(x)    (((uint32)x) | 0xa0000000)
 
 typedef struct {
         uint    pkt_addr ;
@@ -571,16 +577,18 @@ typedef struct {
         uint msg[2] ;
 } QDMA_HWFWD_DMA_DSCP_T ;
 
-static QDMA_HWFWD_DMA_DSCP_T *hwfwd_p = NULL;
-static void *hwfwd_buff_p = NULL;
-
-static QDMA_DMA_DSCP_T *dscps_p = NULL; 
-static uint32 *irq_queue_p = NULL;
-
 #define TX0_DSCP_NUM	4
-#define RX0_DSCP_NUM	2
+#define RX0_DSCP_NUM	4
 #define DSCP_NUM	(TX0_DSCP_NUM + RX0_DSCP_NUM)
-#define HWFWD_DSCP_NUM	4
+#define HWFWD_DSCP_NUM	8
+
+static QDMA_HWFWD_DMA_DSCP_T *hw_fwd_ary = NULL;
+static void *hw_fwd_buff = NULL;
+
+static QDMA_DMA_DSCP_T *dscp_ary = NULL;
+static struct sk_buff *dscp_sk_buff_p_ary[DSCP_NUM];
+
+static uint32 *irq_queue = NULL;
 
 #define QDMA_CSR_TX_DSCP_BASE	0x4008
 #define QDMA_CSR_RX_DSCP_BASE	0x400C
@@ -596,32 +604,36 @@ static uint32 *irq_queue_p = NULL;
 #define QDMA_CSR_GLB_CFG	0x4004
 #define GLB_CFG_TX_DMA_BUSY	(1 << 1)
 
-static int __c = 0;
+/* #define DEBUG 1 */
+/* #define TX_DEBUG 1 */
+/* #define RX_DEBUG 1 */
 
-static void print_dscps(struct mtk_eth *eth) {
+static void print_dscp_ary(struct mtk_eth *eth) {
 	int i;
-	ETH_TX_MSG_T tx_msg;
-	QDMA_DMA_DSCP_T *p;
+	ETH_TX_MSG_T msg;
+	QDMA_DMA_DSCP_T *dscp;
 	
 	for (i = 0; i < DSCP_NUM; i++) {
-		p = &dscps_p[i];
-		tx_msg.msg[0] = p->msg[0];
-		tx_msg.msg[1] = p->msg[1];
+		dscp = &dscp_ary[i];
+		msg.msg[0] = dscp->msg[0];
+		msg.msg[1] = dscp->msg[1];
 		printk("done = %d, next = %d, port = %d,"
-		       "msg0 = %d, msg1 = %d, pkt_len = %d.",
-		       p->ctrl.done, p->next_idx,
-		       tx_msg.raw.fPort,
-		       p->msg[0], p->msg[1],
-		       p->ctrl.pkt_len);
+		       "msg0 = %d, msg1 = %d, pkt_len = %d,"
+		       "resv3 = %d, resv3 (int) = %d.",
+		       dscp->ctrl.done, dscp->next_idx,
+		       msg.raw.fport,
+		       dscp->msg[0], dscp->msg[1],
+		       dscp->ctrl.pkt_len,
+		       msg.raw.resv3, dscp->resv3);
 	}
 }
 
-static void print_hw_dscps(struct mtk_eth *eth) {
+static void print_hw_fwd_ary(struct mtk_eth *eth) {
         int i;
         QDMA_HWFWD_DMA_DSCP_T *p;
         
         for (i = 0; i < HWFWD_DSCP_NUM; i++) {
-                p = &hwfwd_p[i];
+                p = &hw_fwd_ary[i];
                 printk("pkt_addr = %x, pkt_len = %d, ctx = %d, "
 		       "ctx_id = %d, msg0 = %x, msg1 = %x, "
 		       "buf = %x, addr = %x, ctx_ring = %d.",
@@ -637,33 +649,40 @@ static void print_hw_dscps(struct mtk_eth *eth) {
         }
 }
 
-void qdma_free_some_tx_dscps(QDMA_DMA_DSCP_T *p) {
-	int i, next_idx;
+void tx0_free_skb(struct mtk_eth *eth, int idx, QDMA_DMA_DSCP_T *dscp)
+{
+	struct sk_buff *skb;
+	
+	skb = dscp_sk_buff_p_ary[idx];
+	dscp_sk_buff_p_ary[idx] = NULL;
+	dma_map_single(eth->dev,
+		       dscp->pkt_addr, skb_headlen(skb), DMA_FROM_DEVICE);
+	dev_kfree_skb(skb);	
+}
+
+void tx0_free_some(struct mtk_eth *eth, QDMA_DMA_DSCP_T *dscp)
+{
+	int i, idx;
+	
 	for (i = 0; i < 2; i++) {
-		p = &dscps_p[p->next_idx];
-		memset(&p->ctrl, 0, sizeof(uint));
+		idx = dscp->next_idx;
+		dscp = &dscp_ary[idx];
+		if (dscp->pkt_addr) {
+			tx0_free_skb(eth, idx, dscp);
+			dscp->pkt_addr = 0;
+		}
+		/* TODO: If done = 0, adjust drop counter. */
+		
+		/* Set done = 0. */
+		memset(&dscp->ctrl, 0, sizeof(uint));
 	}
 }
 
-static int mtk_tx_map(struct sk_buff *skb, struct net_device *dev)
+/* TODO: Use mtk_busy_wait. */
+static int qdma_busy_wait(struct mtk_eth *eth)
 {
-	struct mtk_mac *mac = netdev_priv(dev);
-	struct mtk_eth *eth = mac->hw;
-	dma_addr_t phys_addr;
-	ETH_TX_MSG_T tx_msg;
-	QDMA_DMA_DSCP_T *p;
-	int i, n, val;
+	int val;
 	
-	// Initialize ring. 
-	for (i = 0; __c == 0 && i < TX0_DSCP_NUM - 1; i++)
-		dscps_p[i].next_idx = i + 1;
-	
-	n = __c % TX0_DSCP_NUM;
-
-	printk("(1) CPU idx %d, DMA idx %d, n %d.",
-	       mtk_r32(eth, QDMA_CSR_TX_CPU_IDX),
-	       mtk_r32(eth, QDMA_CSR_TX_DMA_IDX),
-	       n);
 	val = mtk_r32(eth, QDMA_CSR_GLB_CFG);
 #if 0
 	for (i = 0; (val & GLB_CFG_TX_DMA_BUSY) && i < 1000; i++) {
@@ -672,49 +691,93 @@ static int mtk_tx_map(struct sk_buff *skb, struct net_device *dev)
 #endif	
 	if (val & GLB_CFG_TX_DMA_BUSY) {
 		printk("tx qdma is busy.");
-		// return -1;
+		return -1;
+	}
+	return 0;
+}
+
+static int tx0_dscp_pkt_addr(struct mtk_eth *eth,
+			     struct sk_buff *skb, int idx)
+{
+	dma_addr_t phys;
+	
+	phys = dma_map_single(eth->dev,
+			      skb->data, skb_headlen(skb), DMA_TO_DEVICE);
+	if (!phys) {
+		return 0;
+	}
+	dscp_sk_buff_p_ary[idx] = skb;
+	
+	return phys;
+}
+
+static QDMA_DMA_DSCP_T *tx0_get_dscp(int idx)
+{
+	return &dscp_ary[idx];
+}	
+
+static int mtk_tx_map(struct sk_buff *skb, struct net_device *dev)
+{
+	struct mtk_mac *mac = netdev_priv(dev);
+	struct mtk_eth *eth = mac->hw;
+	ETH_TX_MSG_T *tx_msg;
+	QDMA_DMA_DSCP_T *dscp;
+	int idx, val;
+
+	if (qdma_busy_wait(eth)) {
+		/* TODO: free skb. */
+		return -1;
 	}
 
-	__c++;
+#ifdef TX_DEBUG
+	print_dscp_ary(eth);
+	print_hw_fwd_ary(eth);
+#endif
 	
-	printk("tx num %d.", __c);
-	print_dscps(eth);
-	print_hw_dscps(eth);
-	
-	memset(&tx_msg, 0, sizeof(ETH_TX_MSG_T));
-	tx_msg.raw.fPort = 1;
+	idx = mtk_r32(eth, QDMA_CSR_TX_CPU_IDX) % TX0_DSCP_NUM;
+#ifdef TX_DEBUG
+	printk("(1) CPU idx %d, DMA idx %d.",
+	       idx, mtk_r32(eth, QDMA_CSR_TX_DMA_IDX));
+#endif		
+	dscp = tx0_get_dscp(idx);
 
-	p = &dscps_p[n];
-	p->msg[2] = 0;
-	p->msg[3] = 0;
-	p->msg[0] = tx_msg.msg[0];
-	p->msg[1] = tx_msg.msg[1];
-	p->ctrl.pkt_len = skb_headlen(skb);
-	// p->next_idx = n + 1;
-	p->ctrl.done = 0;
-	
-	phys_addr = dma_map_single(eth->dev, skb->data, skb_headlen(skb), DMA_TO_DEVICE);
-	p->pkt_addr = phys_addr;	
+	tx_msg = (ETH_TX_MSG_T *) &dscp->msg;
+	tx_msg->raw.fport = 1; /* GDM_P_GDMA1 */
 
-	/* QDMA_CSR_DMA_IDX will travel to an element with
-	   done = 0. If element is not found, 
-	   INT_MASK_NO_TX0_CPU_DSCP bit will be set and it will
-	   stop marking DSCPs done. 
+	if (skb->len < 60) {
+		skb_padto(skb, 60);
+		skb_put(skb, 60 - skb->len);
+	}
+	
+	dscp->pkt_addr = tx0_dscp_pkt_addr(eth, skb, idx);
+	if (! dscp->pkt_addr) {
+		/* free skb. */
+		return -1;
+	}
+	dscp->ctrl.pkt_len = skb_headlen(skb);
+	// dscp->ctrl.done = 0;
 
-	   If while traveling, there is no packet to send, 
-	   GLB_CFG_TX_DMA_BUSY will be set. */
-	// memset(&dscps_p[p->next_idx].ctrl, 0, sizeof(uint));	
-	qdma_free_some_tx_dscps(p);
+	/* QDMA_CSR_DMA_IDX will move to an element with
+	   done = 0. If element is not found, `done` marking will stop.
+
+	   Will become very busy, GLB_CFG_TX_DMA_BUSY, if it will not find 
+	   a packet for sending. */
+
+	/* TODO: We already freed some dscp's, no need to call this
+	   everytime.
+	   if (idx % 2) tx0_free_some(dscp); */
+	tx0_free_some(eth, dscp);
 	
-	wmb();
+	// wmb();
 	
-	mtk_w32(eth, p->next_idx, QDMA_CSR_TX_CPU_IDX);
-	
+	mtk_w32(eth, dscp->next_idx, QDMA_CSR_TX_CPU_IDX);
+
+#ifdef TX_DEBIG
 	printk("(2) CPU idx %d, DMA idx %d, next_idx %d.",
 	       mtk_r32(eth, QDMA_CSR_TX_CPU_IDX),
 	       mtk_r32(eth, QDMA_CSR_TX_DMA_IDX),
-	       p->next_idx);
-	
+	       dscp->next_idx);
+#endif	
 	return 0;
 }
 
@@ -815,6 +878,137 @@ static void mtk_tx_timeout(struct net_device *dev, unsigned int txqueue)
 	schedule_work(&eth->pending_work);
 }
 
+static QDMA_DMA_DSCP_T *rx0_get_dscp(int idx) {
+	return &dscp_ary[TX0_DSCP_NUM + idx];
+}
+
+static struct sk_buff *rx0_new_skb(struct mtk_eth *eth,
+				   int idx, QDMA_DMA_DSCP_T *dscp)
+{
+	int len;
+	struct sk_buff *new_skb;
+	dma_addr_t phys;
+
+	len = 2000;
+
+	new_skb = alloc_skb(len, GFP_ATOMIC);
+	if (!new_skb) {
+		return NULL;
+	}
+
+	phys = dma_map_single(eth->dev, new_skb->data, len, DMA_TO_DEVICE);
+	if (!phys) {
+		// free new_skb.
+		return NULL;
+	}
+	dscp_sk_buff_p_ary[TX0_DSCP_NUM + idx] = new_skb;
+	dscp->pkt_addr = phys;
+	
+	return new_skb;
+}
+
+static struct sk_buff *rx0_pop_skb(struct mtk_eth *eth,
+				   int idx, QDMA_DMA_DSCP_T *dscp)
+{
+	int len;
+	struct sk_buff *skb;
+	dma_addr_t phys;
+
+	len = 2000;
+	
+	skb = dscp_sk_buff_p_ary[idx + TX0_DSCP_NUM];
+	phys = dscp->pkt_addr;
+	if (rx0_new_skb(eth, idx, dscp)) {
+		dma_unmap_single(eth->dev, phys, len, DMA_FROM_DEVICE);
+		return skb;
+	} 
+	return NULL;
+}
+
+static void rx0_dscp_defaults(QDMA_DMA_DSCP_T *dscp)
+{
+	/* TODO: May be this is not necessary. The is payload size. */
+	dscp->ctrl.pkt_len = 1518;
+}
+
+static void rx0_done(struct mtk_eth *eth)
+{
+	int idx, val;
+	QDMA_DMA_DSCP_T *dscp;
+	struct sk_buff *skb;
+	
+	val = mtk_r32(eth, QDMA_CSR_RX_DMA_IDX);
+#ifdef RX_DEBUG	
+	printk("rx0_done (1) CPU = %d, DMA = %d.",
+	       mtk_r32(eth, QDMA_CSR_RX_CPU_IDX), val);
+#endif
+	/* Get previous ring index. */
+	idx = (val + (RX0_DSCP_NUM - 1)) % RX0_DSCP_NUM;
+
+	dscp = rx0_get_dscp(idx);
+	skb = rx0_pop_skb(eth, idx, dscp);	
+	if (skb) {
+		skb_put(skb, dscp->ctrl.pkt_len);
+		/* TODO: Get netdev by switch port. How? */
+		skb->protocol = eth_type_trans(skb, eth->netdev[0]);
+		netif_rx(skb);
+	} else {
+		/* TODO: Update netdev drop counter. */
+	}
+	rx0_dscp_defaults(dscp);
+	dscp->ctrl.done = 0;
+	/* DMA ID will try to meet CPU ID, no need to assign
+	   CPU ID on every new message. I do this to free
+	   my eyes from if's. */
+	mtk_w32(eth, idx, QDMA_CSR_RX_CPU_IDX);
+#ifdef RX_DEBUG
+	printk("rx0_done (2) CPU = %d, DMA = %d.",
+	       mtk_r32(eth, QDMA_CSR_RX_CPU_IDX),
+	       mtk_r32(eth, QDMA_CSR_RX_DMA_IDX));
+#endif
+}
+
+#define QDMA_CSR_IRQ_STATUS		0x406C
+#define QDMA_CSR_IRQ_CLEAR_LEN		0x4068
+#define IRQ_STATUS_HEAD_IDX_MASK	0xFFF
+#define IRQ_STATUS_ENTRY_LEN_SHIFT	16
+#define IRQ_STATUS_ENTRY_LEN_MASK	(0xFFF << IRQ_STATUS_ENTRY_LEN_SHIFT)
+#define IRQ_DEF_VALUE			0xFFFFFFFF
+
+static void tx0_recycle_if_required(struct mtk_eth *eth)
+{
+	int val, idx, len, i;
+	
+	/* Irq queue keeps indexes of sent tx dscp's so we know
+	   which skb's and dscp's we can free. TX interrupt can 
+	   be configured to trigger once in N messages, 
+	   QDMA_CSR_TX_DELAY_INT_CFG. 
+	   See 7512_eth.c qdma_bm_transmit_done.
+	   
+	   I free skb's in xmit. It looks like irq queue is not necessary,
+	   but this simplified mode did not work. 
+	   
+	   TODO. */
+
+	/*  The IRQ_FULL interrupt will be triggered if len == QUEUE_DEPTH.
+
+	    Clean the queue counter. 
+
+	    The counter will not be set 0 by writing to CLEAR_LEN reg, it 
+	    will continue until len == IRQ_DEPTH and then begin 
+	    from 0. */
+	
+	val = mtk_r32(eth, QDMA_CSR_IRQ_STATUS);
+	idx = val & IRQ_STATUS_HEAD_IDX_MASK;
+	len = (val & IRQ_STATUS_ENTRY_LEN_MASK) >> IRQ_STATUS_ENTRY_LEN_SHIFT;
+	/* printk("IRQ Q STATUS %x, %d, %d.", val, idx, len); */
+
+	for (i = 0; i < len; i++) {
+		irq_queue[i] = IRQ_DEF_VALUE;
+	}
+	mtk_w32(eth, len & 0x7F, QDMA_CSR_IRQ_CLEAR_LEN);
+}
+
 static irqreturn_t mtk_handle_irq(int irq, void *_eth)
 {
 	struct mtk_eth *eth = _eth;
@@ -823,8 +1017,14 @@ static irqreturn_t mtk_handle_irq(int irq, void *_eth)
 	mask = mtk_r32(eth, MTK_QDMA_INT_MASK);
 	status = mtk_r32(eth, MTK_QDMA_INT_STATUS);
 	
-	printk("mtk int mask=%x status=%x\n", mask, status);
+	pr_debug("mtk int mask=%x status=%x.", mask, status);
 
+	if (status & INT_STATUS_RX0_DONE) {
+		rx0_done(eth);
+	} else if (status & INT_STATUS_TX0_DONE) {
+		tx0_recycle_if_required(eth);
+	}
+	
 	mtk_w32(eth, status & mask, MTK_QDMA_INT_STATUS);
 	
 	return IRQ_HANDLED;
@@ -837,28 +1037,24 @@ static irqreturn_t mtk_handle_irq(int irq, void *_eth)
 
 #define QDMA_CSR_LMGR_START_BIT		BIT(31)
 
-static void config_qdma_hwfwd(struct mtk_eth *eth) {
+static void qdma_initialize_hw_fwd(struct mtk_eth *eth) {
 	dma_addr_t phys_addr;
-	int i, val;
+	int i, val, len;
 
-	// It is from qdma_bm_dscp_init. DSCP "done" marking will
-	// not begin if this is not set.
+	// mtk/linux-2.6.36/*.i, qdma_bm_dscp_init().
+	// DSCP "done" marking will not begin if this is not set.
 	mtk_w32(eth, 0x14 << 16, QDMA_CSR_LMGR_INIT_CFG);
 	
 	// Alloc mem for HWFWD_DSCPs.
-	hwfwd_p = dma_alloc_coherent(eth->dev, sizeof(QDMA_HWFWD_DMA_DSCP_T) * HWFWD_DSCP_NUM, &phys_addr, GFP_ATOMIC);
-	memset(hwfwd_p, 0, sizeof(QDMA_HWFWD_DMA_DSCP_T) * HWFWD_DSCP_NUM);
-
-	wmb();
-
+	len = sizeof(QDMA_HWFWD_DMA_DSCP_T) * HWFWD_DSCP_NUM;
+	hw_fwd_ary = dma_alloc_coherent(eth->dev,
+					len, &phys_addr, GFP_ATOMIC);
+	memset(hw_fwd_ary, 0, len);
 	mtk_w32(eth, phys_addr, QDMA_CSR_HWFWD_DSCP_BASE);
 
-	// Allow HWFWD buf, depends on payload size.
-	hwfwd_buff_p = dma_alloc_coherent(eth->dev, 6000, &phys_addr, GFP_ATOMIC);
-	memset(hwfwd_buff_p, 0, 6000);
-
-	wmb();
-
+	// Alloc HWFWD buf, depends on payload size.
+	hw_fwd_buff = dma_alloc_coherent(eth->dev, 2048, &phys_addr, GFP_ATOMIC);
+	memset(hw_fwd_buff, 0, 2048);
 	mtk_w32(eth, phys_addr, QDMA_CSR_HWFWD_BUFF_BASE);
 
 	val = mtk_r32(eth, QDMA_CSR_LMGR_INIT_CFG);
@@ -875,96 +1071,110 @@ static void config_qdma_hwfwd(struct mtk_eth *eth) {
 	mtk_w32(eth, val | QDMA_CSR_LMGR_START_BIT, QDMA_CSR_LMGR_INIT_CFG);	
 	// Wait for init.
 	for (i = 0; i < 100; i++) {
-		val = mtk_r32(eth, QDMA_CSR_LMGR_INIT_CFG) & QDMA_CSR_LMGR_START_BIT;
-		if (val == 0)
+		val = mtk_r32(eth, QDMA_CSR_LMGR_INIT_CFG);
+		if ((val & QDMA_CSR_LMGR_START_BIT) == 0)
 			break;
 	}
 	// TODO: report init failure.
-	
-	// Do not know where to set this.
-	// mtk_w32(eth, 0x1180004, QDMA_CSR_LMGR_INIT_CFG);
 }
 
 #define QDMA_CSR_IRQ_BASE	0x4060
 #define QDMA_CSR_IRQ_CFG	0x4064
+#define QDMA_IRQ_QUEUE_DEPTH	20
 
-static void config_qdma_irq_queue(struct mtk_eth *eth) {
-	dma_addr_t phys_addr;
+static void qdma_initialize_irq_queue(struct mtk_eth *eth)
+{
+	dma_addr_t phys;
+	int len;
+
+	/* TODO: May be "<< 2" is not necessary, compare 7512_eth.c
+	   buffer types. */
+	len = QDMA_IRQ_QUEUE_DEPTH << 2;
 	
-	irq_queue_p = dma_alloc_coherent(eth->dev, 1000, &phys_addr, GFP_ATOMIC);
-	// CONFIG_IRQ_DEF_VALUE
-	memset(irq_queue_p, 0xFFFFFFFF, 1000);
-	
-	wmb();
-
-	mtk_w32(eth, phys_addr, QDMA_CSR_IRQ_BASE);
-
-	// Bootloader register value.
-	// mtk_w32(eth, 20, QDMA_CSR_IRQ_CFG);	
-	mtk_w32(eth, 2, QDMA_CSR_IRQ_CFG);	
+	irq_queue = dma_alloc_coherent(eth->dev, len, &phys, GFP_ATOMIC);
+	memset(irq_queue, IRQ_DEF_VALUE, len);
+	mtk_w32(eth, phys, QDMA_CSR_IRQ_BASE);
+	mtk_w32(eth, QDMA_IRQ_QUEUE_DEPTH, QDMA_CSR_IRQ_CFG);	
 }
 
-static int config_qdma(struct mtk_eth *eth)
+static void qdma_initialize_tx_ring(void) {
+	int i;
+	for (i = 0; i < TX0_DSCP_NUM - 1; i++)
+		dscp_ary[i].next_idx = i + 1;
+}
+
+static void qdma_initialize_rx_ring(struct mtk_eth *eth) {
+	QDMA_DMA_DSCP_T *dscp;
+	int i;
+	
+	for (i = 0; i < RX0_DSCP_NUM; i++) {
+		dscp = rx0_get_dscp(i);
+		rx0_dscp_defaults(dscp);
+		rx0_new_skb(eth, i, dscp);
+	}	
+}
+
+static int qdma_config(struct mtk_eth *eth)
 {
 	int err, i, val;	
 	dma_addr_t phys_addr;
-	struct sk_buff *skb;
 	
-	// Disable QDMA interrupts or TX interrupt will trigger
-	// so fast that this will lock the system. That is if
-	// the system is booted with bootloader config and TX int
-	// is enabled.
+	// Disable TX/RX.
 	mtk_w32(eth, 0, QDMA_CSR_GLB_CFG);
 	
-	dscps_p = dma_alloc_coherent(eth->dev, sizeof(QDMA_DMA_DSCP_T) * DSCP_NUM, &phys_addr, GFP_ATOMIC);
-	memset(dscps_p, 0, sizeof(QDMA_DMA_DSCP_T) * DSCP_NUM);
-		
-	wmb();
-	
-	// INT_STATUS_NO_TX0_CPU_DSCP	  (1<<2)
+	dscp_ary = dma_alloc_coherent(eth->dev,
+			      sizeof(QDMA_DMA_DSCP_T) * DSCP_NUM,
+				      &phys_addr,
+				      GFP_ATOMIC);
+	memset(dscp_ary, 0, sizeof(QDMA_DMA_DSCP_T) * DSCP_NUM);
 
-	// Set QDMA TX/RX memory address.
+	// Set TX and RX DSCP addresses.
 	mtk_w32(eth, phys_addr, QDMA_CSR_TX_DSCP_BASE);
 	mtk_w32(eth, phys_addr + sizeof(QDMA_DMA_DSCP_T) * TX0_DSCP_NUM, QDMA_CSR_RX_DSCP_BASE);
 	
-	mtk_w32(eth, 2, QDMA_CSR_RX_RING_CFG);
+	mtk_w32(eth, DSCP_NUM - TX0_DSCP_NUM, QDMA_CSR_RX_RING_CFG);
 	mtk_w32(eth, 0, QDMA_CSR_RX_RING_THR);
 
-#if 0
-	config_qdma_irq_queue(eth);
-#endif
-	config_qdma_hwfwd(eth);
-	
+	qdma_initialize_irq_queue(eth);
+	qdma_initialize_hw_fwd(eth);
+
+	qdma_initialize_tx_ring();	
+	// Set TX circular buffer/ring pointers.
 	mtk_w32(eth, 0, QDMA_CSR_TX_CPU_IDX);
 	mtk_w32(eth, 0, QDMA_CSR_TX_DMA_IDX);
 
-	// Initialize RX DSCPs.
-	skb = alloc_skb(2000, 0);
-	phys_addr = dma_map_single(eth->dev, skb->data, 2000, DMA_TO_DEVICE);
-	dscps_p[TX0_DSCP_NUM].ctrl.pkt_len = 1518;
-	dscps_p[TX0_DSCP_NUM].pkt_addr = phys_addr;
-	dscps_p[TX0_DSCP_NUM].next_idx = 1;
-	dscps_p[TX0_DSCP_NUM + 1].next_idx = 0;
-	
+	qdma_initialize_rx_ring(eth);       	
 	mtk_w32(eth, 0, QDMA_CSR_RX_CPU_IDX);
 	mtk_w32(eth, 0, QDMA_CSR_RX_DMA_IDX);
-	mtk_w32(eth, 1, QDMA_CSR_RX_CPU_IDX);
-
-	// Non DSCP config.
+	mtk_w32(eth, RX0_DSCP_NUM, QDMA_CSR_RX_CPU_IDX);
 	
 	// QDMA_CSR_TX_DELAY_INT_CFG 
 	mtk_w32(eth, 0, 0x4058);
 	// RX_DELAY_INT_CFG
 	mtk_w32(eth, 0, 0x405C);
 
-	// GLB_CFG_IRQ_EN BIT(19) 
 	mtk_w32(eth, (1 << 27) | (1 << 26) | (1 << 28) | (0x3 << 4)
 		| MTK_TX_DMA_EN | MTK_RX_DMA_EN |
-		(1 << 6) | (1 << 4) | (1 << 5) | 
-		(1 << 31)  
-		/* |(1 << 19) */,
+		(1 << 6) | (1 << 4) | (1 << 5)
+		/* GLB_CFG_RX_2B_OFFSET. 7512_eth.c  _receive_buffer. */
+		/* | (1 << 31) */
+		/* GLB_CFG_IRQ_EN */
+	        | (1 << 19),
 		QDMA_CSR_GLB_CFG);
 
+	/* Select interrupts.
+	   If INT_STATUS_TX0_DONE is off but GLB_CFG_IRQ_EN is on, 
+	   TX0_DONE interrupt will be triggered. 
+	   If INT_STATUS_TX0_DONE and GLB_CFG_IRQ_EN both on, TX0_DONE
+	   will be triggered even if no message was received. */	
+	mtk_w32(eth, INT_STATUS_HWFWD_DSCP_LOW |
+		INT_STATUS_IRQ_FULL |
+		INT_STATUS_HWFWD_DSCP_EMPTY |
+		INT_STATUS_NO_RX0_CPU_DSCP |
+		INT_STATUS_NO_TX0_CPU_DSCP |
+		INT_STATUS_RX0_DONE /* | INT_STATUS_TX0_DONE */,
+		MTK_QDMA_INT_MASK);
+	
 	// GDMA1_FWD_CFG from bootloader mem.
 	mtk_w32(eth, 0xC0000000, 0x500);
 
@@ -974,7 +1184,7 @@ static int config_qdma(struct mtk_eth *eth)
 	
 	// GSW_MFC, matches bootloader reg value.
 	mtk_w32(eth, (0xff << 24) | (0xff << 16) | (0xff << 8) | (1 << 7) | (6 << 4), 0x8000 + 0x10);
-
+	
 	return 0;
 }
 
@@ -998,16 +1208,15 @@ static int mtk_open(struct net_device *dev)
 
 	/* we run 2 netdevs on the same dma ring so we only bring it up once */
 	if (!refcount_read(&eth->dma_refcnt)) {
-		int err = config_qdma(eth);
+		int err = qdma_config(eth);
 
 		if (err)
 			return err;
 
 		mtk_gdm_config(eth, MTK_GDMA_TO_PDMA);
 
-		// Uncomment if not GLB_CFG_IRQ_EN BIT(19). 
-		mtk_tx_irq_enable(eth, MTK_TX_DONE_INT);
-		mtk_rx_irq_enable(eth, MTK_RX_DONE_INT);
+		// mtk_tx_irq_enable(eth, MTK_TX_DONE_INT);
+		// mtk_rx_irq_enable(eth, MTK_RX_DONE_INT);
 		refcount_set(&eth->dma_refcnt, 1);
 	}
 	else

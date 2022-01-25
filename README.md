@@ -4,7 +4,7 @@ Tp-Link Archer VR300 (EN7512) source code: https://www.tp-link.com/it/support/gp
 
 An attempt at upgrading this code or the part required for EN7512 SoC, to Linux 5.
 
-State: TC3262 platform kernel compiles and boots with initramfs and UART console. I'm stuck with ethernet driver, see eth.md.
+State: TC3262 platform kernel compiles and boots with initramfs and UART console. Simple ethernet driver. The problem at the moment with this driver: from ring objects (DSCP's), I can't determine switch port the packet came from, LAN or WLAN, do no see any difference. Sending broadcast packets does not work from the router. See eth.md.
 
 * all.diff - patch for plain Linux 5. Does not include later fixes. At the moment without USB/PCI, flash is not enabled and will need fixes, see mtd.txt and mips.notes, drivers.notes
 * full-ct.diff - compile time fixes, etc fixes, apply after full.diff.
